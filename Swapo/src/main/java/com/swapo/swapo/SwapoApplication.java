@@ -27,6 +27,7 @@ public class SwapoApplication
 			p1.setPrecio(1800000.0);
 			p1.setStock(5);
 			p1.setMarca("Xiaomi");
+			p1.setCategoria("tecnologia");
 
 			repository.save(p1);
 
