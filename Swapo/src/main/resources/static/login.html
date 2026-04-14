@@ -7,24 +7,45 @@
     <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
-    <div class="container d-flex justify-content-center align-items-center vh-100">
-        <div class="card p-4 shadow-sm" style="width: 100%; max-width: 350px;">
-            <h2 class="text-center mb-4 text-primary">Iniciar Sesión</h2>
-            <form action="/login" method="POST">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Correo</label>
-                    <input type="email" name="email" class="form-control">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Contraseña</label>
-                    <input type="password" name="password" class="form-control">
-                </div>
-                <button type="submit" class="btn btn-primary w-100 mt-2">Entrar</button>
-            </form>
-            <div class="text-center mt-3">
-                <small>¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a></small>
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="card p-4 shadow-sm" style="width: 100%; max-width: 350px;">
+        <h2 class="text-center mb-4 text-primary">Iniciar Sesión</h2>
+        <form id="loginForm">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Correo</label>
+                <input type="email" id="loginEmail" class="form-control" required>
             </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Contraseña</label>
+                <input type="password" id="loginPassword" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mt-2">Entrar</button>
+        </form>
+        <div class="text-center mt-3">
+            <small>¿No tienes cuenta? <a href="registro.html">Regístrate aquí</a></small>
         </div>
     </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const datos = {
+            email: document.getElementById('loginEmail').value,
+            password: document.getElementById('loginPassword').value
+        };
+        try {
+            const respuesta = await fetch('http://localhost:8080/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+            const mensaje = await respuesta.text();
+            alert(mensaje);
+        } catch (error) {
+            alert("Error al conectar con el servidor.");
+        }
+    });
+</script>
 </body>
 </html>

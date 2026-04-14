@@ -48,7 +48,11 @@ public class ProductoController
     @GetMapping("/{id}/valor-intercambio")
     public String probarIntercambio(@PathVariable long id)
     {
-        return productoRepo.findById(id).map(p -> {p.calcularValorIntercambio(); return "calculo realizado para: " + p.getNombre() + " Revisa la consola de IntelliJ.";}).orElse("Producto no encontrado");
+        return productoRepo.findById(id).map(p ->
+        {
+            p.calcularValorIntercambio();
+            return "Cálculo realizado para: " + p.getNombre() + ". Revisa la consola de IntelliJ.";
+        }).orElse("Producto no encontrado");
     }
 
     @GetMapping("/categoria/{nombre}")
