@@ -11,7 +11,6 @@ import lombok.AllArgsConstructor;
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 @Table(name = "recursos")
-
 public abstract class Recurso
 {
     @Id
@@ -22,6 +21,10 @@ public abstract class Recurso
     private String descripcion;
     private Double precio;
     private Integer stock;
+    private String vendedorNombre;
+    private String vendedorEmail;
+    private Integer vendedorVentas;
+    private String imagenPath;
 
     public abstract void calcularValorIntercambio();
 }

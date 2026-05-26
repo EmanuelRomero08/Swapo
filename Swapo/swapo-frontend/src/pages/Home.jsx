@@ -2,54 +2,106 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 
-const Home = () =>
-{
+const Home = () => {
+    const [productos, setProductos] = useState([]);
     const [filtro, setFiltro] = useState('Todos');
+    const [categoria, setCategoria] = useState('Todas');
+    const [cargando, setCargando] = useState(true);
+    const [busqueda, setBusqueda] = useState('');
+
     const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const terminoBusqueda = queryParams.get('search')?.toLowerCase() || '';
 
-    const productosPrueba = [
-        { id: 1, nombre: "iPhone 13", precio: 2500000, tipo: "Venta", descripcion: "Perfecto estado, 128GB" },
-        { id: 2, nombre: "Monitor Gamer 144hz", precio: 800000, tipo: "Cambio", descripcion: "Busco componentes de PC" },
-        { id: 3, nombre: "Laptop Lenovo LOQ", precio: 3500000, tipo: "Venta", descripcion: "RTX 4050, 16GB RAM" },
-        { id: 4, nombre: "Teclado Mecánico", precio: 200000, tipo: "Cambio", descripcion: "Cambio por mouse inalámbrico" },
-    ];
+    const categoriasDisponibles = ['Todas', 'Laptops', 'PC Escritorio', 'Componentes', 'Periféricos', 'Audio', 'Monitores', 'Almacenamiento'];
 
-    const productosFiltrados = productosPrueba.filter(prod =>
-    {
-        const coincideFiltro = filtro === 'Todos' ? true : prod.tipo === filtro;
-        const coincideBusqueda = prod.nombre.toLowerCase().includes(terminoBusqueda) ||
-            prod.descripcion.toLowerCase().includes(terminoBusqueda);
-        return coincideFiltro && coincideBusqueda;
+    // Obtener parámetro de búsqueda de la URL
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const searchQuery = params.get('search');
+        if (searchQuery) {
+            setBusqueda(searchQuery);
+        } else {
+            setBusqueda('');
+        }
+    }, [location.search]);
+
+    useEffect(() => {
+        const cargarProductos = async () => {
+            try {
+                const response = await fetch('http://localhost:8080/api/productos');
+                const data = await response.json();
+                setProductos(data);
+            } catch (error) {
+                console.error("Error al cargar productos:", error);
+            } finally {
+                setCargando(false);
+            }
+        };
+        cargarProductos();
+    }, []);
+
+    const productosFiltrados = productos.filter(p => {
+        // Filtro por tipo (Venta/Intercambio/Todos)
+        if (filtro !== 'Todos' && p.tipo?.toLowerCase() !== filtro.toLowerCase()) {
+            return false;
+        }
+        // Filtro por categoría
+        if (categoria !== 'Todas' && p.categoria !== categoria) {
+            return false;
+        }
+        // Filtro por búsqueda (nombre)
+        if (busqueda && !p.nombre.toLowerCase().includes(busqueda.toLowerCase())) {
+            return false;
+        }
+        return true;
     });
 
+    if (cargando) {
+        return (
+            <div className="home-container" style={{ textAlign: 'center', padding: '50px' }}>
+                <h2>Cargando productos...</h2>
+            </div>
+        );
+    }
+
     return (
-        <div className="page-fade-in">
+        <div className="home-container">
             <header className="home-header">
-                {terminoBusqueda ? (
-                    <h1>Resultados para: <span>"{terminoBusqueda}"</span></h1>
-                ) : (
-                    <h1>Mercado <span>SWAPO</span></h1>
+                <h1>Mercado <span>SWAPO</span></h1>
+
+                {busqueda && (
+                    <div style={{ marginBottom: '20px', color: '#00d4ff' }}>
+                        Resultados para: <strong>"{busqueda}"</strong> ({productosFiltrados.length} productos)
+                    </div>
                 )}
 
-                <div className="filter-container">
-                    {['Todos', 'Venta', 'Cambio'].map((opcion) => (
+                <div className="sw-filter-bar">
+                    <button className={filtro === 'Todos' ? 'sw-btn-filter active' : 'sw-btn-filter'} onClick={() => setFiltro('Todos')}>Todos</button>
+                    <button className={filtro === 'Venta' ? 'sw-btn-filter active' : 'sw-btn-filter'} onClick={() => setFiltro('Venta')}>En Venta</button>
+                    <button className={filtro === 'Intercambio' ? 'sw-btn-filter active' : 'sw-btn-filter'} onClick={() => setFiltro('Intercambio')}>Intercambios</button>
+                </div>
+
+                <div className="category-selector">
+                    {categoriasDisponibles.map(cat => (
                         <button
-                            key={opcion}
-                            className={`filter-pill ${filtro === opcion ? 'active' : ''}`}
-                            onClick={() => setFiltro(opcion)}
+                            key={cat}
+                            className={`cat-tab ${categoria === cat ? 'active' : ''}`}
+                            onClick={() => setCategoria(cat)}
                         >
-                            {opcion}
+                            {cat}
                         </button>
                     ))}
                 </div>
             </header>
 
             <div className="product-grid">
-                {productosFiltrados.map(prod => (
-                    <ProductCard key={prod.id} producto={prod} />
-                ))}
+                {productosFiltrados.length > 0 ? (
+                    productosFiltrados.map(p => <ProductCard key={p.id} producto={p} />)
+                ) : (
+                    <div className="sw-no-results">
+                        <h3>No hay productos disponibles</h3>
+                        <p>No se encontraron artículos con los filtros seleccionados.</p>
+                    </div>
+                )}
             </div>
         </div>
     );

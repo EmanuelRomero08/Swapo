@@ -13,6 +13,12 @@ public class Producto extends Recurso
 {
     private String marca;
     private String categoria;
+    private String cpu;
+    private String gpu;
+    private String ram;
+    private String ssd;
+    private Double scoreIA;
+    private String tipo;
 
     @Override
     public void calcularValorIntercambio()

@@ -3,16 +3,27 @@ package com.swapo.swapo.controller;
 import com.swapo.swapo.model.Producto;
 import com.swapo.swapo.repository.ProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/productos")
+@CrossOrigin(origins = "http://localhost:5173")
 public class ProductoController
 {
     @Autowired
     private ProductoRepository productoRepo;
+
+    private final String UPLOAD_DIR = "uploads/";
 
     @GetMapping
     public List<Producto> listarTodos()
@@ -20,44 +31,118 @@ public class ProductoController
         return productoRepo.findAll();
     }
 
-    @PostMapping
-    public Object guardar(@RequestBody Producto producto)
+    @GetMapping("/{id}")
+    public ResponseEntity<Producto> obtenerPorId(@PathVariable Long id)
     {
-        if (producto.getNombre() == null || producto.getNombre().isBlank())
-        {
-            return "Error: El nombre del producto es obligatorio.";
-        }
-        if (producto.getPrecio() == null || producto.getPrecio() <= 0)
-        {
-            return "Error: El precio debe ser mayor a 0.";
-        }
-        if (producto.getCategoria() == null || producto.getCategoria().isBlank())
-        {
-            return "Error: La categoría es obligatoria para las búsquedas de SWAPO.";
-        }
-
-        return productoRepo.save(producto);
+        return productoRepo.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/buscar")
-    public List<Producto> buscarPorMarca(@RequestParam String marca)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminar(@PathVariable Long id)
     {
-        return productoRepo.findByMarcaIgnoreCase(marca);
+        return productoRepo.findById(id).map(producto -> {
+            productoRepo.delete(producto);
+            return ResponseEntity.ok().body("Producto eliminado de SWAPO");
+        }).orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/{id}/valor-intercambio")
-    public String probarIntercambio(@PathVariable long id)
-    {
-        return productoRepo.findById(id).map(p ->
+    @PostMapping("/publicar")
+    public ResponseEntity<?> guardarConFoto(
+            @RequestParam("imagen") MultipartFile imagen,
+            @RequestParam("nombre") String nombre,
+            @RequestParam("precio") Double precio,
+            @RequestParam("vendedorNombre") String vendedorNombre,
+            @RequestParam(value = "vendedorEmail", required = false) String vendedorEmail,
+            @RequestParam("cpu") String cpu,
+            @RequestParam("gpu") String gpu,
+            @RequestParam("ram") String ram,
+            @RequestParam("ssd") String ssd,
+            @RequestParam("descripcion") String descripcion,
+            @RequestParam("categoria") String categoria,
+            @RequestParam("tipo") String tipo
+    ) {
+        try
         {
-            p.calcularValorIntercambio();
-            return "Cálculo realizado para: " + p.getNombre() + ". Revisa la consola de IntelliJ.";
-        }).orElse("Producto no encontrado");
+            Path pathDirectorio = Paths.get(UPLOAD_DIR);
+            if (!Files.exists(pathDirectorio))
+            {
+                Files.createDirectories(pathDirectorio);
+            }
+
+            String nombreArchivo = UUID.randomUUID().toString() + "_" + imagen.getOriginalFilename();
+            Path rutaArchivo = pathDirectorio.resolve(nombreArchivo);
+            Files.copy(imagen.getInputStream(), rutaArchivo);
+
+            Producto producto = new Producto();
+            producto.setNombre(nombre);
+            producto.setPrecio(precio);
+            producto.setDescripcion(descripcion);
+            producto.setCategoria(categoria);
+            producto.setVendedorNombre(vendedorNombre);
+            producto.setVendedorEmail(vendedorEmail != null ? vendedorEmail : "");
+            producto.setVendedorVentas(0);
+            producto.setCpu(cpu);
+            producto.setGpu(gpu);
+            producto.setRam(ram);
+            producto.setSsd(ssd);
+            producto.setImagenPath("/uploads/" + nombreArchivo);
+            producto.setTipo(tipo);
+
+            productoRepo.save(producto);
+            return ResponseEntity.ok(producto.getId().toString());
+        }
+        catch (IOException e)
+        {
+            return ResponseEntity.internalServerError().body("Error al guardar la imagen: " + e.getMessage());
+        }
     }
 
-    @GetMapping("/categoria/{nombre}")
-    public List<Producto> buscarPorCategoria(@PathVariable String nombre)
-    {
-        return productoRepo.findByCategoriaIgnoreCase(nombre);
+    @PutMapping("/editar/{id}")
+    public ResponseEntity<?> editarProducto(
+            @PathVariable Long id,
+            @RequestParam("nombre") String nombre,
+            @RequestParam("precio") Double precio,
+            @RequestParam("descripcion") String descripcion,
+            @RequestParam("categoria") String categoria,
+            @RequestParam("cpu") String cpu,
+            @RequestParam("gpu") String gpu,
+            @RequestParam("ram") String ram,
+            @RequestParam("ssd") String ssd,
+            @RequestParam("tipo") String tipo,
+            @RequestParam(value = "imagen", required = false) MultipartFile imagen
+    ) {
+        try {
+            Optional<Producto> productoOpt = productoRepo.findById(id);
+            if (!productoOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Producto producto = productoOpt.get();
+            producto.setNombre(nombre);
+            producto.setPrecio(precio);
+            producto.setDescripcion(descripcion);
+            producto.setCategoria(categoria);
+            producto.setCpu(cpu);
+            producto.setGpu(gpu);
+            producto.setRam(ram);
+            producto.setSsd(ssd);
+            producto.setTipo(tipo);
+
+            if (imagen != null && !imagen.isEmpty()) {
+                Path pathDirectorio = Paths.get(UPLOAD_DIR);
+                if (!Files.exists(pathDirectorio)) {
+                    Files.createDirectories(pathDirectorio);
+                }
+                String nombreArchivo = UUID.randomUUID().toString() + "_" + imagen.getOriginalFilename();
+                Path rutaArchivo = pathDirectorio.resolve(nombreArchivo);
+                Files.copy(imagen.getInputStream(), rutaArchivo);
+                producto.setImagenPath("/uploads/" + nombreArchivo);
+            }
+
+            productoRepo.save(producto);
+            return ResponseEntity.ok("Producto actualizado");
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("Error al actualizar: " + e.getMessage());
+        }
     }
 }

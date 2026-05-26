@@ -29,6 +29,8 @@ public class TradeOffer
     @JoinColumn(name = "producto_deseado_id", nullable = false)
     private Producto productoDeseado;
 
+    private Double diferenciaDinero;
+
     @Enumerated(EnumType.STRING)
     private TradeStatus estado = TradeStatus.PENDIENTE;
 
@@ -84,6 +86,16 @@ public class TradeOffer
     public void setProductoDeseado(Producto productoDeseado)
     {
         this.productoDeseado = productoDeseado;
+    }
+
+    public Double getDiferenciaDinero()
+    {
+        return diferenciaDinero;
+    }
+
+    public void setDiferenciaDinero(Double diferenciaDinero)
+    {
+        this.diferenciaDinero = diferenciaDinero;
     }
 
     public TradeStatus getEstado()

@@ -1,25 +1,35 @@
 import { useState } from 'react';
 
-const Login = ({ isOpen, onClose, onLoginSuccess }) =>
-{
-
+const Login = ({ isOpen, onClose, onLoginSuccess }) => {
     const [isRegister, setIsRegister] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
+    const [identificador, setIdentificador] = useState('');
+    const [cargando, setCargando] = useState(false);
 
-    const handleSubmit = async (e) =>
-    {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const endpoint = isRegister ? '/register' : '/login';
-        const datosUsuario = {
-            email: email,
-            password: password,
-            ...(isRegister && { username: username })
-        };
+        setCargando(true);
 
-        try
-        {
+        const endpoint = isRegister ? '/register' : '/login';
+
+        let datosUsuario;
+
+        if (isRegister) {
+            datosUsuario = {
+                email: email,
+                password: password,
+                username: username
+            };
+        } else {
+            datosUsuario = {
+                email: identificador,
+                password: password
+            };
+        }
+
+        try {
             const response = await fetch(`http://localhost:8080/api/auth${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -30,54 +40,112 @@ const Login = ({ isOpen, onClose, onLoginSuccess }) =>
 
             if (response.ok && !data.includes("Error")) {
                 alert(data);
-                onLoginSuccess();
+
+                if (isRegister) {
+                    // Registro: guardar el nombre que el usuario escribió
+                    localStorage.setItem("usuario", username);
+                    localStorage.setItem("usuarioEmail", email);
+                    localStorage.setItem("usuarioNombre", username);
+                } else {
+                    // Login: extraer el nombre real del mensaje del backend
+                    // El mensaje viene como "¡Bienvenido a SWAPO, Emanuel!"
+                    const match = data.match(/SWAPO, (.+?)!/);
+                    const nombreReal = match ? match[1] : identificador;
+
+                    localStorage.setItem("usuario", nombreReal);
+                    localStorage.setItem("usuarioEmail", identificador.includes('@') ? identificador : '');
+                    localStorage.setItem("usuarioNombre", nombreReal);
+                }
+
+                // Forzar actualización del Navbar
+                if (onLoginSuccess) {
+                    onLoginSuccess();
+                }
+
                 onClose();
             } else {
                 alert(data);
             }
-        }
-        catch (error)
-        {
+        } catch (error) {
             console.error("Error de conexión:", error);
             alert("No se pudo conectar con el servidor (Spring Boot)");
+        } finally {
+            setCargando(false);
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay">
-            {/* Agregamos position relative aquí para que la X se ubique bien */}
-            <div className="modal-content login-card" style={{ position: 'relative' }}>
+        <div className="sw-modal-overlay">
+            <div className="sw-modal-card">
+                <button className="sw-modal-close" onClick={onClose}>✕</button>
 
-                {/* BOTÓN DE CIERRE */}
-                <button className="close-x" onClick={onClose}>&times;</button>
+                <div className="sw-modal-header">
+                    <h2>SWAPO <span>{isRegister ? 'REGISTRO' : 'LOGIN'}</span></h2>
+                    <p>{isRegister ? 'Crea tu cuenta para empezar a tradear.' : 'Bienvenido de nuevo, te extrañamos.'}</p>
+                </div>
 
-                <h2>SWAPO <span>{isRegister ? 'Registro' : 'Login'}</span></h2>
-
-                <form onSubmit={handleSubmit} className="login-form">
+                <form onSubmit={handleSubmit} className="sw-modal-form">
                     {isRegister && (
-                        <div className="form-group">
-                            <label>Usuario</label>
-                            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                        <>
+                            <div className="sw-form-group">
+                                <label>Nombre de Usuario</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: JuanPerez"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            <div className="sw-form-group">
+                                <label>Email</label>
+                                <input
+                                    type="email"
+                                    placeholder="correo@ejemplo.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {!isRegister && (
+                        <div className="sw-form-group">
+                            <label>Email o Nombre de Usuario</label>
+                            <input
+                                type="text"
+                                placeholder="correo@ejemplo.com o JuanPerez"
+                                value={identificador}
+                                onChange={(e) => setIdentificador(e.target.value)}
+                                required
+                            />
                         </div>
                     )}
-                    <div className="form-group">
-                        <label>Email</label>
-                        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-                    </div>
-                    <div className="form-group">
+
+                    <div className="sw-form-group">
                         <label>Contraseña</label>
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        <input
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
                     </div>
-                    <button type="submit" className="confirm-publish-btn">
-                        {isRegister ? 'Crear Cuenta' : 'Entrar'}
+
+                    <button type="submit" className="sw-btn-submit" disabled={cargando}>
+                        {cargando ? 'CARGANDO...' : (isRegister ? 'CREAR CUENTA' : 'ENTRAR')}
                     </button>
                 </form>
 
-                <p className="switch-auth" onClick={() => setIsRegister(!isRegister)} style={{ cursor: 'pointer', marginTop: '20px' }}>
-                    {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
-                </p>
+                <div className="sw-modal-footer">
+                    <p onClick={() => setIsRegister(!isRegister)}>
+                        {isRegister ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate'}
+                    </p>
+                </div>
             </div>
         </div>
     );

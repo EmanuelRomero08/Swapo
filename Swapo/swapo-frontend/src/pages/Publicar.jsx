@@ -1,66 +1,199 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const Publicar = () =>
-{
-    const [step, setStep] = useState(1);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [scannedData, setScannedData] = useState(null);
+const Publicar = () => {
+    const [producto, setProducto] = useState({
+        nombre: '',
+        precio: '',
+        categoria: 'Tecnología',
+        descripcion: '',
+        cpu: '',
+        gpu: '',
+        ram: '',
+        ssd: '',
+        tipo: 'Venta'
+    });
 
-    const handleFileUpload = (e) =>
-    {
-        setIsAnalyzing(true);
-        setTimeout(() =>
-        {
-            setScannedData({
-                model: "MacBook Air M2",
-                detectedSpecs: "8GB RAM, 256GB SSD, Batería 98%",
-                suggestedPrice: 4200000,
-                confidence: 95
+    const [preview, setPreview] = useState(null);
+    const [imageFile, setImageFile] = useState(null);
+    const [vendedorNombre, setVendedorNombre] = useState('');
+
+    useEffect(() => {
+        const usuario = localStorage.getItem("usuario");
+        if (usuario) {
+            setVendedorNombre(usuario);
+        }
+    }, []);
+
+    const handleChange = (e) => {
+        setProducto({ ...producto, [e.target.name]: e.target.value });
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImageFile(file);
+            setPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handlePublish = async (e) => {
+        e.preventDefault();
+
+        if (!vendedorNombre) {
+            alert("Debes iniciar sesión para publicar un producto");
+            return;
+        }
+
+        const formData = new FormData();
+
+        if (imageFile) {
+            formData.append('imagen', imageFile);
+        } else {
+            alert("Por favor, selecciona una imagen del producto.");
+            return;
+        }
+
+        formData.append('nombre', producto.nombre);
+        formData.append('precio', producto.precio);
+        formData.append('descripcion', producto.descripcion);
+        formData.append('categoria', producto.categoria);
+        formData.append('cpu', producto.cpu);
+        formData.append('gpu', producto.gpu);
+        formData.append('ram', producto.ram);
+        formData.append('ssd', producto.ssd);
+        formData.append('tipo', producto.tipo);
+        formData.append('vendedorNombre', vendedorNombre);
+        formData.append('vendedorEmail', localStorage.getItem("usuarioEmail") || '');
+
+        try {
+            const response = await fetch('http://localhost:8080/api/productos/publicar', {
+                method: 'POST',
+                body: formData,
             });
-            setIsAnalyzing(false);
-            setStep(2);
-        }, 3000);
+
+            if (response.ok)
+            {
+                const mensaje = await response.text();
+                alert(mensaje);
+
+                const productosResponse = await fetch('http://localhost:8080/api/productos');
+                const productos = await productosResponse.json();
+                const productoRecienCreado = productos[productos.length - 1];
+                window.location.href = `/producto/${productoRecienCreado.id}`;
+            }
+        }
+        catch (error)
+        {
+            console.error("Error de conexión:", error);
+            alert("No se pudo conectar con el backend de Spring Boot.");
+        }
     };
 
     return (
-        <div className="page-fade-in content publish-flow">
-            <div className="publish-card">
-                {step === 1 ? (
-                    <div className="upload-zone">
-                        <h2>Validación de Producto <span>IA</span></h2>
-                        <p>Sube una foto de las especificaciones de tu equipo (Pantallazo de "Acerca de este Mac/PC")</p>
-
-                        <div className={`drop-box ${isAnalyzing ? 'analyzing' : ''}`}>
-                            {isAnalyzing ? (
-                                <div className="ai-scanner-line"></div>
-                            ) : (
-                                <input type="file" onChange={handleFileUpload} />
-                            )}
-                            <div className="icon">{isAnalyzing ? "🤖" : "📸"}</div>
-                            <p>{isAnalyzing ? "Analizando autenticidad..." : "Arrastra o selecciona fotos"}</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="edit-zone page-fade-in">
-                        <div className="ai-success-badge">✓ Verificación de Specs Exitosa</div>
-                        <h3>Confirmar Información Detectada</h3>
-
-                        <div className="form-group">
-                            <label>Modelo Detectado</label>
-                            <input type="text" defaultValue={scannedData.model} />
-                        </div>
-
-                        <div className="form-group">
-                            <label>Precio Sugerido por IA (Basado en mercado)</label>
-                            <input type="text" defaultValue={`$${scannedData.suggestedPrice.toLocaleString()}`} />
-                            <small>Nuestra IA sugiere este precio para vender en menos de 7 días.</small>
-                        </div>
-
-                        <button className="confirm-publish-btn">Publicar en SWAPO</button>
-                        <button className="re-scan-btn" onClick={() => setStep(1)}>Volver a escanear</button>
-                    </div>
+        <div className="sw-publicar-page">
+            <div className="sw-publicar-header">
+                <h1>Publicar <span>Producto</span></h1>
+                {vendedorNombre && (
+                    <p style={{ color: '#00d4ff', marginTop: '10px' }}>
+                        Publicando como: {vendedorNombre}
+                    </p>
                 )}
             </div>
+
+            <form className="sw-publicar-form" onSubmit={handlePublish}>
+                <div className="sw-form-grid">
+
+                    <div className="sw-form-section">
+                        <h3>Información General</h3>
+
+                        <div className="sw-input-group">
+                            <label>Modo de Publicación</label>
+                            <select name="tipo" className="sw-mode-selector" onChange={handleChange} value={producto.tipo}>
+                                <option value="Venta">Poner en Venta</option>
+                                <option value="Intercambio">Ofrecer para Intercambio (Swap)</option>
+                            </select>
+                        </div>
+
+                        <div className="sw-input-group">
+                            <label>Nombre del Producto</label>
+                            <input name="nombre" placeholder="Ej: Laptop Lenovo LOQ" onChange={handleChange} required />
+                        </div>
+
+                        <div className="sw-input-row">
+                            <div className="sw-input-group">
+                                <label>Precio / Valor estimado (COP)</label>
+                                <input name="precio" type="number" onChange={handleChange} required />
+                            </div>
+                            <div className="sw-input-group">
+                                <label>Categoría</label>
+                                <select name="categoria" onChange={handleChange}>
+                                    <option value="Laptops">Laptops</option>
+                                    <option value="PC Escritorio">PC Escritorio</option>
+                                    <option value="Componentes">Componentes</option>
+                                    <option value="Periféricos">Periféricos</option>
+                                    <option value="Audio">Audio</option>
+                                    <option value="Monitores">Monitores</option>
+                                    <option value="Almacenamiento">Almacenamiento</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="sw-input-group">
+                            <label>Descripción</label>
+                            <textarea name="descripcion" rows="3" onChange={handleChange} required></textarea>
+                        </div>
+                    </div>
+
+                    <div className="sw-form-section">
+                        <h3>Especificaciones Técnicas</h3>
+                        <div className="sw-input-row">
+                            <div className="sw-input-group">
+                                <label>CPU</label>
+                                <input name="cpu" placeholder="Ej: Ryzen 5" onChange={handleChange} />
+                            </div>
+                            <div className="sw-input-group">
+                                <label>GPU</label>
+                                <input name="gpu" placeholder="Ej: RTX 4050" onChange={handleChange} />
+                            </div>
+                        </div>
+                        <div className="sw-input-row">
+                            <div className="sw-input-group">
+                                <label>RAM</label>
+                                <input name="ram" placeholder="Ej: 16GB" onChange={handleChange} />
+                            </div>
+                            <div className="sw-input-group">
+                                <label>SSD</label>
+                                <input name="ssd" placeholder="Ej: 512GB" onChange={handleChange} />
+                            </div>
+                        </div>
+
+                        <div className="sw-upload-container">
+                            <label className="sw-upload-label">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    style={{ display: 'none' }}
+                                />
+                                <div className="sw-upload-box">
+                                    {preview ? (
+                                        <img src={preview} alt="Vista previa" className="sw-img-preview" />
+                                    ) : (
+                                        <>
+                                            <div className="sw-upload-icon">📸</div>
+                                            <p>Click para subir imagen</p>
+                                        </>
+                                    )}
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="sw-form-actions">
+                    <button type="submit" className="sw-btn-publish">PUBLICAR EN SWAPO</button>
+                </div>
+            </form>
         </div>
     );
 };

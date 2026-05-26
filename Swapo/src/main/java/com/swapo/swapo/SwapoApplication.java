@@ -1,37 +1,31 @@
 package com.swapo.swapo;
 
-import com.swapo.swapo.model.Producto;
-import com.swapo.swapo.repository.RecursoRepository;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @SpringBootApplication
-public class SwapoApplication
+public class SwapoApplication implements WebMvcConfigurer
 {
 	public static void main(String[] args)
 	{
 		SpringApplication.run(SwapoApplication.class, args);
 	}
 
-	@Bean
-	public CommandLineRunner initData(RecursoRepository repository)
-	{
-		return args ->
-		{
-			Producto p1 = new Producto();
+	// 1. Permite que React (puerto 5173) se conecte al Backend
+	@Override
+	public void addCorsMappings(CorsRegistry registry) {
+		registry.addMapping("/**")
+				.allowedOrigins("http://localhost:5173")
+				.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+	}
 
-			p1.setNombre("Poco x7 pro");
-			p1.setDescripcion("Celular de alto rendimiento");
-			p1.setPrecio(1800000.0);
-			p1.setStock(5);
-			p1.setMarca("Xiaomi");
-			p1.setCategoria("tecnologia");
-
-			repository.save(p1);
-
-			System.out.println("--- Sprint 1 Check: Producto guardado en MySQL ---");
-		};
+	@Override
+	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+		registry.addResourceHandler("/uploads/**")
+				.addResourceLocations("file:uploads/");
 	}
 }
