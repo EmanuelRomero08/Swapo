@@ -36,35 +36,30 @@ const Login = ({ isOpen, onClose, onLoginSuccess }) => {
                 body: JSON.stringify(datosUsuario)
             });
 
-            const data = await response.text();
+            const data = await response.json();
 
-            if (response.ok && !data.includes("Error")) {
-                alert(data);
+            if (response.ok && !data.message?.includes("Error")) {
+                alert(data.message);
 
                 if (isRegister) {
-                    // Registro: guardar el nombre que el usuario escribió
-                    localStorage.setItem("usuario", username);
+                    localStorage.setItem("usuario", data.username);
                     localStorage.setItem("usuarioEmail", email);
-                    localStorage.setItem("usuarioNombre", username);
+                    localStorage.setItem("usuarioNombre", data.username);
+                    localStorage.setItem("usuarioId", data.userId);
                 } else {
-                    // Login: extraer el nombre real del mensaje del backend
-                    // El mensaje viene como "¡Bienvenido a SWAPO, Emanuel!"
-                    const match = data.match(/SWAPO, (.+?)!/);
-                    const nombreReal = match ? match[1] : identificador;
-
-                    localStorage.setItem("usuario", nombreReal);
+                    localStorage.setItem("usuario", data.username);
                     localStorage.setItem("usuarioEmail", identificador.includes('@') ? identificador : '');
-                    localStorage.setItem("usuarioNombre", nombreReal);
+                    localStorage.setItem("usuarioNombre", data.username);
+                    localStorage.setItem("usuarioId", data.userId);
                 }
 
-                // Forzar actualización del Navbar
                 if (onLoginSuccess) {
                     onLoginSuccess();
                 }
 
                 onClose();
             } else {
-                alert(data);
+                alert(data.message || data);
             }
         } catch (error) {
             console.error("Error de conexión:", error);

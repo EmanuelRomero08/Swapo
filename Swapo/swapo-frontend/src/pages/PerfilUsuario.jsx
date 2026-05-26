@@ -9,7 +9,7 @@ const PerfilUsuario = () => {
     const [productos, setProductos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [usuarioActual, setUsuarioActual] = useState(null);
-    const [emailVendedor, setEmailVendedor] = useState('');
+    const [email, setEmail] = useState('');
 
     useEffect(() => {
         const usuario = localStorage.getItem("usuario");
@@ -19,22 +19,26 @@ const PerfilUsuario = () => {
     useEffect(() => {
         const cargarPerfil = async () => {
             try {
-                // Cargar todos los productos
+                // 1. Obtener los datos del usuario (incluye email)
+                const userResponse = await fetch(`http://localhost:8080/api/auth/usuario/${username}`);
+                let userEmail = '';
+                if (userResponse.ok) {
+                    const userData = await userResponse.json();
+                    userEmail = userData.email || 'No disponible';
+                    setEmail(userEmail);
+                } else {
+                    setEmail('No disponible');
+                }
+
+                // 2. Cargar todos los productos
                 const response = await fetch('http://localhost:8080/api/productos');
                 const allProducts = await response.json();
 
-                // Filtrar productos del usuario
+                // 3. Filtrar productos del usuario
                 const userProducts = allProducts.filter(p => p.vendedorNombre === username);
                 setProductos(userProducts);
 
-                // Obtener el email del vendedor desde el primer producto
-                if (userProducts.length > 0 && userProducts[0].vendedorEmail) {
-                    setEmailVendedor(userProducts[0].vendedorEmail);
-                } else {
-                    // Si no hay productos, el email no está disponible
-                    setEmailVendedor('No disponible');
-                }
-
+                // 4. Configurar perfil
                 setPerfil({
                     nombre: username,
                     totalProductos: userProducts.length,
@@ -43,6 +47,7 @@ const PerfilUsuario = () => {
                 });
             } catch (error) {
                 console.error("Error:", error);
+                setEmail('Error al cargar');
             } finally {
                 setCargando(false);
             }
@@ -86,7 +91,7 @@ const PerfilUsuario = () => {
                 </div>
                 <div className="perfil-info">
                     <h1>{perfil.nombre}</h1>
-                    <p className="perfil-email">{emailVendedor}</p>
+                    <p className="perfil-email"> {email}</p>
                     {esMiPerfil && (
                         <span className="perfil-badge">Este eres tú</span>
                     )}

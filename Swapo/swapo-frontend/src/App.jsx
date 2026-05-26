@@ -16,6 +16,7 @@ import PaymentPending from './pages/PaymentPending';
 import MisCompras from './pages/MisCompras';
 import MisVentas from './pages/MisVentas';
 
+
 function App()
 {
     return (

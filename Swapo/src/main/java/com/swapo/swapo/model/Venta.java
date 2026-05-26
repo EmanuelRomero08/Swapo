@@ -19,7 +19,13 @@ public class Venta {
     private String paymentId;
     private LocalDateTime fecha;
     
-    // ========== CONSTRUCTORES ==========
+
+    @Column(length = 100)
+    private String codigoRastreo;      
+    
+    @Column(length = 500)
+    private String comprobanteEnvio;   
+    
     public Venta() {}
     
     public Venta(Long productoId, Long compradorId, Long vendedorId, Double monto, String estado, String paymentId, LocalDateTime fecha) {
@@ -32,7 +38,6 @@ public class Venta {
         this.fecha = fecha;
     }
     
-    // ========== GETTERS Y SETTERS ==========
     public Long getId() {
         return id;
     }
@@ -95,5 +100,22 @@ public class Venta {
     
     public void setFecha(LocalDateTime fecha) {
         this.fecha = fecha;
+    }
+    
+    // ========== GETTERS Y SETTERS PARA NUEVOS CAMPOS ==========
+    public String getCodigoRastreo() {
+        return codigoRastreo;
+    }
+    
+    public void setCodigoRastreo(String codigoRastreo) {
+        this.codigoRastreo = codigoRastreo;
+    }
+    
+    public String getComprobanteEnvio() {
+        return comprobanteEnvio;
+    }
+    
+    public void setComprobanteEnvio(String comprobanteEnvio) {
+        this.comprobanteEnvio = comprobanteEnvio;
     }
 }

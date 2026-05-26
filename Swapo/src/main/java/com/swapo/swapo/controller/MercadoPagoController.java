@@ -85,8 +85,9 @@ public class MercadoPagoController {
             
             String paymentId = null;
             if (payload.containsKey("data") && payload.get("data") instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = (Map<String, Object>) payload.get("data");                if (data.containsKey("id")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = (Map<String, Object>) payload.get("data");
+                if (data.containsKey("id")) {
                     paymentId = data.get("id").toString();
                 }
             }
@@ -96,8 +97,17 @@ public class MercadoPagoController {
                 PaymentClient paymentClient = new PaymentClient();
                 Payment payment = paymentClient.get(Long.parseLong(paymentId));
                 
-                if ("approved".equals(payment.getStatus())) {
-                    registrarVenta(payment);
+                String status = payment.getStatus();
+                System.out.println("Estado del pago: " + status);
+                
+                if ("authorized".equals(status) || "waiting_capture".equals(status)) {
+                    registrarVentaPendiente(payment);
+                } 
+                else if ("approved".equals(status)) {
+                    registrarVentaCompleta(payment);
+                }
+                else if ("rejected".equals(status) || "cancelled".equals(status)) {
+                    System.out.println("Pago rechazado o cancelado: " + paymentId);
                 }
             }
             
@@ -109,46 +119,167 @@ public class MercadoPagoController {
         }
     }
 
-    private void registrarVenta(Payment payment) {
-    try {
-        if (payment.getAdditionalInfo() == null || 
-            payment.getAdditionalInfo().getItems() == null || 
-            payment.getAdditionalInfo().getItems().isEmpty()) {
-            System.err.println("No se encontró información del producto en el pago");
-            return;
+    private void registrarVentaPendiente(Payment payment) {
+        try {
+            if (payment.getAdditionalInfo() == null || 
+                payment.getAdditionalInfo().getItems() == null || 
+                payment.getAdditionalInfo().getItems().isEmpty()) {
+                System.err.println("No se encontró información del producto en el pago");
+                return;
+            }
+            
+            String productId = payment.getAdditionalInfo().getItems().get(0).getId();
+            
+            Producto producto = productoRepository.findById(Long.parseLong(productId))
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            
+            Venta venta = new Venta();
+            venta.setProductoId(producto.getId());
+            venta.setVendedorId(producto.getUsuarioId()); 
+            venta.setCompradorId(Long.parseLong(payment.getPayer().getId()));
+            venta.setMonto(payment.getTransactionAmount().doubleValue());
+            venta.setEstado("PENDIENTE_ENVIO");  // 🔥 Estado: pago autorizado, esperando envío
+            venta.setPaymentId(payment.getId().toString());
+            venta.setFecha(LocalDateTime.now());
+            
+            ventaRepository.save(venta);
+            
+            System.out.println("✅ Pago AUTORIZADO (no cobrado) para: " + producto.getNombre());
+            System.out.println("💰 Dinero retenido. El vendedor debe marcar como enviado para cobrar.");
+            
+        } catch (Exception e) {
+            System.err.println("Error al registrar venta pendiente: " + e.getMessage());
+            e.printStackTrace();
         }
-        
-        String productId = payment.getAdditionalInfo().getItems().get(0).getId();
-        
-        Producto producto = productoRepository.findById(Long.parseLong(productId))
-            .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
-        
-        Venta venta = new Venta();
-        venta.setProductoId(producto.getId());
-        venta.setVendedorId(producto.getUsuarioId()); 
-        venta.setCompradorId(Long.parseLong(payment.getPayer().getId()));
-        venta.setMonto(payment.getTransactionAmount().doubleValue());
-        venta.setEstado(payment.getStatus());
-        venta.setPaymentId(payment.getId().toString());
-        venta.setFecha(LocalDateTime.now());
-        
-        ventaRepository.save(venta);
-        
-        producto.setEstado("VENDIDO");
-        productoRepository.save(producto);
-        System.out.println("Producto actualizado a VENDIDO: " + producto.getNombre());
-        
-        System.out.println("Venta registrada exitosamente para el producto: " + producto.getNombre());
-        
-    } catch (Exception e) {
-        System.err.println("Error al registrar venta: " + e.getMessage());
-        e.printStackTrace();
     }
-}
+
+    private void registrarVentaCompleta(Payment payment) {
+        try {
+            if (payment.getAdditionalInfo() == null || 
+                payment.getAdditionalInfo().getItems() == null || 
+                payment.getAdditionalInfo().getItems().isEmpty()) {
+                System.err.println("No se encontró información del producto en el pago");
+                return;
+            }
+            
+            String productId = payment.getAdditionalInfo().getItems().get(0).getId();
+            
+            Producto producto = productoRepository.findById(Long.parseLong(productId))
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+            
+            Venta venta = new Venta();
+            venta.setProductoId(producto.getId());
+            venta.setVendedorId(producto.getUsuarioId()); 
+            venta.setCompradorId(Long.parseLong(payment.getPayer().getId()));
+            venta.setMonto(payment.getTransactionAmount().doubleValue());
+            venta.setEstado("COMPLETADO");
+            venta.setPaymentId(payment.getId().toString());
+            venta.setFecha(LocalDateTime.now());
+            
+            ventaRepository.save(venta);
+            
+            producto.setEstado("VENDIDO");
+            productoRepository.save(producto);
+            
+            System.out.println("✅ Venta COMPLETADA y producto marcado como VENDIDO: " + producto.getNombre());
+            
+        } catch (Exception e) {
+            System.err.println("Error al registrar venta completa: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @PostMapping("/marcar-enviado/{ventaId}")
+    public ResponseEntity<?> marcarComoEnviado(@PathVariable Long ventaId, @RequestBody(required = false) Map<String, String> datos) {
+        try {
+            Venta venta = ventaRepository.findById(ventaId)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+            
+            if (!"PENDIENTE_ENVIO".equals(venta.getEstado())) {
+                return ResponseEntity.badRequest().body("❌ La venta no está en estado pendiente de envío. Estado actual: " + venta.getEstado());
+            }
+            
+            if (datos != null && datos.containsKey("codigoRastreo")) {
+                venta.setCodigoRastreo(datos.get("codigoRastreo"));
+            }
+            
+            venta.setEstado("ENVIADO");
+            ventaRepository.save(venta);
+            
+            return ResponseEntity.ok("✅ Producto marcado como enviado. El comprador podrá confirmar la recepción para que se cobre el pago.");
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/confirmar-recepcion/{ventaId}")
+    public ResponseEntity<?> confirmarRecepcion(@PathVariable Long ventaId) {
+        try {
+            Venta venta = ventaRepository.findById(ventaId)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+            
+            if (!"ENVIADO".equals(venta.getEstado())) {
+                return ResponseEntity.badRequest().body("❌ El producto no ha sido marcado como enviado aún. Estado actual: " + venta.getEstado());
+            }
+            
+            MercadoPagoConfig.setAccessToken(accessToken);
+            PaymentClient paymentClient = new PaymentClient();
+            Payment payment = paymentClient.capture(Long.parseLong(venta.getPaymentId()));
+            
+            if ("approved".equals(payment.getStatus())) {
+                venta.setEstado("COMPLETADO");
+                
+                Producto producto = productoRepository.findById(venta.getProductoId()).orElse(null);
+                if (producto != null) {
+                    producto.setEstado("VENDIDO");
+                    productoRepository.save(producto);
+                }
+                
+                ventaRepository.save(venta);
+                return ResponseEntity.ok("✅ Pago cobrado exitosamente. Venta completada.");
+            } else {
+                return ResponseEntity.status(500).body("❌ Error al capturar el pago. Estado actual: " + payment.getStatus());
+            }
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/cancelar-venta/{ventaId}")
+    public ResponseEntity<?> cancelarVenta(@PathVariable Long ventaId) {
+        try {
+            Venta venta = ventaRepository.findById(ventaId)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada"));
+            
+            if (!"PENDIENTE_ENVIO".equals(venta.getEstado()) && !"ENVIADO".equals(venta.getEstado())) {
+                return ResponseEntity.badRequest().body("❌ No se puede cancelar esta venta. Estado actual: " + venta.getEstado());
+            }
+            
+            MercadoPagoConfig.setAccessToken(accessToken);
+            PaymentClient paymentClient = new PaymentClient();
+            Payment payment = paymentClient.cancel(Long.parseLong(venta.getPaymentId()));
+            
+            venta.setEstado("CANCELADO");
+            ventaRepository.save(venta);
+            
+            return ResponseEntity.ok("✅ Venta cancelada. El dinero ha sido liberado para el comprador.");
+            
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
 
     @GetMapping("/ventas/comprador/{compradorId}")
     public ResponseEntity<List<Venta>> getVentasByComprador(@PathVariable Long compradorId) {
         List<Venta> ventas = ventaRepository.findByCompradorId(compradorId);
+        return ResponseEntity.ok(ventas);
+    }
+
+    @GetMapping("/ventas/vendedor/{vendedorId}")
+    public ResponseEntity<List<Venta>> getVentasByVendedor(@PathVariable Long vendedorId) {
+        List<Venta> ventas = ventaRepository.findByVendedorId(vendedorId);
         return ResponseEntity.ok(ventas);
     }
 }

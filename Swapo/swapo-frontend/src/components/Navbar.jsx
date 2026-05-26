@@ -7,12 +7,14 @@ const Navbar = () => {
     const [sugerencias, setSugerencias] = useState([]);
     const [isLoginOpen, setIsLoginOpen] = useState(false);
     const [usuarioLogueado, setUsuarioLogueado] = useState(null);
+    const [usuarioId, setUsuarioId] = useState(null);
     const [productosReales, setProductosReales] = useState([]);
     const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+    const [menuAbierto, setMenuAbierto] = useState(false);
     const navigate = useNavigate();
     const searchRef = useRef(null);
+    const menuRef = useRef(null);
 
-    // Cargar productos reales
     useEffect(() => {
         const cargarProductos = async () => {
             try {
@@ -26,11 +28,13 @@ const Navbar = () => {
         cargarProductos();
     }, []);
 
-    // Cerrar sugerencias al hacer clic fuera
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (searchRef.current && !searchRef.current.contains(event.target)) {
                 setMostrarSugerencias(false);
+            }
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setMenuAbierto(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -39,8 +43,10 @@ const Navbar = () => {
 
     useEffect(() => {
         const usuario = localStorage.getItem("usuario");
+        const userId = localStorage.getItem("usuarioId");
         if (usuario) {
             setUsuarioLogueado(usuario);
+            setUsuarioId(userId);
         }
     }, []);
 
@@ -48,12 +54,15 @@ const Navbar = () => {
         if (window.confirm("¿Estás seguro de que quieres cerrar sesión?")) {
             localStorage.removeItem("usuario");
             localStorage.removeItem("usuarioEmail");
+            localStorage.removeItem("usuarioId");
+            localStorage.removeItem("token");
             setUsuarioLogueado(null);
+            setUsuarioId(null);
+            setMenuAbierto(false);
             navigate('/');
         }
     };
 
-    // Filtrar sugerencias
     useEffect(() => {
         const valor = busqueda.trim().toLowerCase();
         if (valor.length > 1 && productosReales.length > 0) {
@@ -84,32 +93,28 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="navbar">
-            <div className="nav-top-row">
-                <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
+        <nav className="navbar-ml">
+            <div className="navbar-ml-container">
+                {/* Logo */}
+                <div className="logo-ml" onClick={() => navigate('/')}>
                     SWAPO<span>.ia</span>
                 </div>
 
-                <div className="search-container" ref={searchRef}>
-                    <form className="search-bar" onSubmit={alBuscar}>
+                {/* Buscador */}
+                <div className="search-ml-container" ref={searchRef}>
+                    <form className="search-ml-form" onSubmit={alBuscar}>
                         <input
                             type="text"
-                            placeholder="¿Qué buscas hoy?"
+                            placeholder="Buscar productos, marcas..."
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             onFocus={() => sugerencias.length > 0 && setMostrarSugerencias(true)}
                             autoComplete="off"
                         />
-                        <button type="submit" className="search-btn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="3">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                        </button>
+                        <button type="submit">🔍</button>
                     </form>
-
                     {mostrarSugerencias && sugerencias.length > 0 && (
-                        <ul className="suggestions-list">
+                        <ul className="suggestions-ml">
                             {sugerencias.map((s, i) => (
                                 <li key={i} onClick={() => seleccionarSugerencia(s)}>
                                     {s}
@@ -119,25 +124,33 @@ const Navbar = () => {
                     )}
                 </div>
 
-                <div className="nav-links">
-                    <Link to="/comparar">Comparar</Link>
-                    <Link to="/publicar">Publicar</Link>
-                    {usuarioLogueado ? (
-                        <>
-                            <Link to="/mis-trueques" className="trueques-link">Mis trueques</Link>
-                            <Link to={`/perfil/${usuarioLogueado}`} style={{ color: '#00d4ff', fontWeight: 'bold', textDecoration: 'none' }}>
-                                Hola, {usuarioLogueado}
-                            </Link>
-                            <button onClick={handleLogout} className="logout-btn-movil">
-                                Salir
-                            </button>
-                        </>
-                    ) : (
-                        <span className="login-btn" onClick={() => setIsLoginOpen(true)}>
-                            Entrar
-                        </span>
-                    )}
+                {/* Links principales */}
+                <div className="links-ml">
+                    <Link to="/comparar" className="link-ml">Comparar</Link>
+                    <Link to="/publicar" className="link-ml">Publicar</Link>
                 </div>
+
+                {/* Usuario / Menú */}
+                {usuarioLogueado ? (
+                    <div className="user-menu-ml" ref={menuRef}>
+                        <button className="user-btn-ml" onClick={() => setMenuAbierto(!menuAbierto)}>
+                            👤 {usuarioLogueado} <span className="arrow-ml">{menuAbierto ? '▲' : '▼'}</span>
+                        </button>
+                        {menuAbierto && (
+                            <div className="dropdown-ml">
+                                <Link to="/mis-compras" onClick={() => setMenuAbierto(false)}>📦 Mis compras</Link>
+                                <Link to="/mis-ventas" onClick={() => setMenuAbierto(false)}>🏷️ Mis ventas</Link>
+                                <Link to="/mis-trueques" onClick={() => setMenuAbierto(false)}>🔄 Mis trueques</Link>
+                                <Link to={`/perfil/${usuarioLogueado}`} onClick={() => setMenuAbierto(false)}>👤 Mi perfil</Link>
+                                <button onClick={handleLogout}>🚪 Cerrar sesión</button>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <button className="login-ml-btn" onClick={() => setIsLoginOpen(true)}>
+                        Entrar
+                    </button>
+                )}
             </div>
 
             <Login
@@ -145,7 +158,9 @@ const Navbar = () => {
                 onClose={() => setIsLoginOpen(false)}
                 onLoginSuccess={() => {
                     const usuario = localStorage.getItem("usuario");
+                    const userId = localStorage.getItem("usuarioId");
                     setUsuarioLogueado(usuario);
+                    setUsuarioId(userId);
                     setIsLoginOpen(false);
                 }}
             />
