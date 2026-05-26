@@ -18,13 +18,11 @@ public class GroqService
 
     private static final String API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-    public String analizarTrueque(String productoOfrecido, double precioOfrecido,
-                                  String productoDeseado, double precioDeseado,
-                                  double diferenciaDinero)
+    public String analizarTrueque(String productoOfrecido, double precioOfrecido, String productoDeseado, double precioDeseado, double diferenciaDinero)
     {
-        try {
+        try
+        {
             double valorTotalOfrecido = precioOfrecido + diferenciaDinero;
-
             String prompt = String.format(
                     "Eres SWAPO IA, un asistente experto en trueques de tecnología. " +
                             "Eres consistente y honesto. Analiza este trueque:\n\n" +
@@ -44,9 +42,7 @@ public class GroqService
                     productoOfrecido, precioOfrecido, diferenciaDinero, valorTotalOfrecido,
                     productoDeseado, precioDeseado
             );
-
             return llamarGroq(prompt);
-
         }
         catch (Exception e)
         {
@@ -54,8 +50,7 @@ public class GroqService
         }
     }
 
-    public String analizarComparacion(String productoA, double precioA, String specsA,
-                                      String productoB, double precioB, String specsB)
+    public String analizarComparacion(String productoA, double precioA, String specsA, String productoB, double precioB, String specsB)
     {
         try {
             String prompt = String.format(
@@ -75,8 +70,46 @@ public class GroqService
 
             return llamarGroq(prompt);
 
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             return "🏆 GANADOR: Empate\n ANÁLISIS: No se pudo analizar\n RELACIÓN PRECIO-VALOR: Revisa las specs\n RECOMENDACIÓN: Prueba de nuevo";
+        }
+    }
+
+    public String validarProducto(String nombre, String descripcion, String categoria, String cpu, String gpu, String ram, String ssd, double precio, String vendedorNombre, String imagenPath)
+    {
+        try
+        {
+            String prompt = String.format(
+                    "Eres SWAPO IA, un sistema de seguridad para trueques y ventas de tecnología. " +
+                            "Debes detectar posibles ESTAFAS o INCONSISTENCIAS.\n\n" +
+                            "DATOS DEL PRODUCTO:\n" +
+                            "Nombre: %s\n" +
+                            "Descripción: %s\n" +
+                            "Categoría: %s\n" +
+                            "CPU: %s\n" +
+                            "GPU: %s\n" +
+                            "RAM: %s\n" +
+                            "SSD: %s\n" +
+                            "Precio: $%.0f COP\n" +
+                            "Vendedor: %s\n\n" +
+                            "RESPONDE EXACTAMENTE CON ESTE FORMATO:\n" +
+                            "SEGURIDAD: [🔴 PELIGRO / 🟡 SOSPECHOSO / 🟢 SEGURO]\n" +
+                            "RAZÓN: [explicación corta]\n" +
+                            "RECOMENDACIÓN: [qué debe hacer el comprador]\n\n" +
+                            "REGLAS:\n" +
+                            "1. Si el precio es menor al 30%% del valor normal → PELIGRO\n" +
+                            "2. Si el nombre no coincide con las especificaciones → SOSPECHOSO\n" +
+                            "3. Si la descripción es muy corta o genérica → SOSPECHOSO\n" +
+                            "4. Si todo es coherente y precio razonable → SEGURO",
+                    nombre, descripcion, categoria, cpu, gpu, ram, ssd, precio, vendedorNombre
+            );
+
+            return llamarGroq(prompt);
+
+        } catch (Exception e) {
+            return "SEGURIDAD: 🟡 SOSPECHOSO\nRAZÓN: No se pudo analizar\nRECOMENDACIÓN: Revisa manualmente";
         }
     }
 

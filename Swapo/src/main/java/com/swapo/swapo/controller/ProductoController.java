@@ -2,6 +2,7 @@ package com.swapo.swapo.controller;
 
 import com.swapo.swapo.model.Producto;
 import com.swapo.swapo.repository.ProductoRepository;
+import com.swapo.swapo.service.ImageValidatorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,9 @@ public class ProductoController
     @Autowired
     private ProductoRepository productoRepo;
 
+    @Autowired
+    private ImageValidatorService imageValidatorService;
+
     private final String UPLOAD_DIR = "uploads/";
 
     @GetMapping
@@ -40,29 +44,20 @@ public class ProductoController
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id)
     {
-        return productoRepo.findById(id).map(producto -> {
-            productoRepo.delete(producto);
-            return ResponseEntity.ok().body("Producto eliminado de SWAPO");
-        }).orElse(ResponseEntity.notFound().build());
+        return productoRepo.findById(id).map(producto -> {productoRepo.delete(producto);return ResponseEntity.ok().body("Producto eliminado de SWAPO");}).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/publicar")
-    public ResponseEntity<?> guardarConFoto(
-            @RequestParam("imagen") MultipartFile imagen,
-            @RequestParam("nombre") String nombre,
-            @RequestParam("precio") Double precio,
-            @RequestParam("vendedorNombre") String vendedorNombre,
-            @RequestParam(value = "vendedorEmail", required = false) String vendedorEmail,
-            @RequestParam("cpu") String cpu,
-            @RequestParam("gpu") String gpu,
-            @RequestParam("ram") String ram,
-            @RequestParam("ssd") String ssd,
-            @RequestParam("descripcion") String descripcion,
-            @RequestParam("categoria") String categoria,
-            @RequestParam("tipo") String tipo
-    ) {
+    public ResponseEntity<?> guardarConFoto(@RequestParam("imagen") MultipartFile imagen, @RequestParam("nombre") String nombre, @RequestParam("precio") Double precio, @RequestParam("vendedorNombre") String vendedorNombre, @RequestParam(value = "vendedorEmail", required = false) String vendedorEmail, @RequestParam("cpu") String cpu, @RequestParam("gpu") String gpu, @RequestParam("ram") String ram, @RequestParam("ssd") String ssd, @RequestParam("descripcion") String descripcion, @RequestParam("categoria") String categoria, @RequestParam("tipo") String tipo)
+    {
         try
         {
+            String validacionImagen = imageValidatorService.validarImagen(imagen);
+            if (validacionImagen.contains("❌"))
+            {
+                return ResponseEntity.badRequest().body(validacionImagen);
+            }
+
             Path pathDirectorio = Paths.get(UPLOAD_DIR);
             if (!Files.exists(pathDirectorio))
             {
@@ -98,22 +93,13 @@ public class ProductoController
     }
 
     @PutMapping("/editar/{id}")
-    public ResponseEntity<?> editarProducto(
-            @PathVariable Long id,
-            @RequestParam("nombre") String nombre,
-            @RequestParam("precio") Double precio,
-            @RequestParam("descripcion") String descripcion,
-            @RequestParam("categoria") String categoria,
-            @RequestParam("cpu") String cpu,
-            @RequestParam("gpu") String gpu,
-            @RequestParam("ram") String ram,
-            @RequestParam("ssd") String ssd,
-            @RequestParam("tipo") String tipo,
-            @RequestParam(value = "imagen", required = false) MultipartFile imagen
-    ) {
-        try {
+    public ResponseEntity<?> editarProducto(@PathVariable Long id, @RequestParam("nombre") String nombre, @RequestParam("precio") Double precio, @RequestParam("descripcion") String descripcion, @RequestParam("categoria") String categoria, @RequestParam("cpu") String cpu, @RequestParam("gpu") String gpu, @RequestParam("ram") String ram, @RequestParam("ssd") String ssd, @RequestParam("tipo") String tipo, @RequestParam(value = "imagen", required = false) MultipartFile imagen)
+    {
+        try
+        {
             Optional<Producto> productoOpt = productoRepo.findById(id);
-            if (!productoOpt.isPresent()) {
+            if (!productoOpt.isPresent())
+            {
                 return ResponseEntity.notFound().build();
             }
 
@@ -128,9 +114,17 @@ public class ProductoController
             producto.setSsd(ssd);
             producto.setTipo(tipo);
 
-            if (imagen != null && !imagen.isEmpty()) {
+            if (imagen != null && !imagen.isEmpty())
+            {
+                String validacionImagen = imageValidatorService.validarImagen(imagen);
+                if (validacionImagen.contains("❌"))
+                {
+                    return ResponseEntity.badRequest().body(validacionImagen);
+                }
+
                 Path pathDirectorio = Paths.get(UPLOAD_DIR);
-                if (!Files.exists(pathDirectorio)) {
+                if (!Files.exists(pathDirectorio))
+                {
                     Files.createDirectories(pathDirectorio);
                 }
                 String nombreArchivo = UUID.randomUUID().toString() + "_" + imagen.getOriginalFilename();
@@ -141,7 +135,9 @@ public class ProductoController
 
             productoRepo.save(producto);
             return ResponseEntity.ok("Producto actualizado");
-        } catch (IOException e) {
+        }
+        catch (IOException e)
+        {
             return ResponseEntity.internalServerError().body("Error al actualizar: " + e.getMessage());
         }
     }

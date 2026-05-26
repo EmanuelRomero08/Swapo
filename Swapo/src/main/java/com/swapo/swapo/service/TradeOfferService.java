@@ -59,8 +59,7 @@ public class TradeOfferService
     @Transactional
     public TradeOffer aceptarPropuesta(Long id)
     {
-        TradeOffer oferta = tradeOfferRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Oferta no encontrada"));
+        TradeOffer oferta = tradeOfferRepository.findById(id).orElseThrow(() -> new RuntimeException("Oferta no encontrada"));
         oferta.setEstado(TradeStatus.ACEPTADO);
         return tradeOfferRepository.save(oferta);
     }
@@ -68,8 +67,7 @@ public class TradeOfferService
     @Transactional
     public TradeOffer rechazarPropuesta(Long id)
     {
-        TradeOffer oferta = tradeOfferRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Oferta no encontrada"));
+        TradeOffer oferta = tradeOfferRepository.findById(id).orElseThrow(() -> new RuntimeException("Oferta no encontrada"));
         oferta.setEstado(TradeStatus.RECHAZADO);
         return tradeOfferRepository.save(oferta);
     }

@@ -50,8 +50,20 @@ const Comparador = () => {
         .sort((a, b) => b.score - a.score);
 
     const seleccionarProducto = (p) => {
-        if (buscandoPara === 'A') setSlotA(p);
-        else if (buscandoPara === 'B') setSlotB(p);
+        console.log("Producto seleccionado:", p);
+        console.log("Precio del producto:", p.precio);
+
+        if (buscandoPara === 'A') {
+            setSlotA(null);
+            setTimeout(() => {
+                setSlotA(p);
+            }, 10);
+        } else if (buscandoPara === 'B') {
+            setSlotB(null);
+            setTimeout(() => {
+                setSlotB(p);
+            }, 10);
+        }
         setBuscandoPara(null);
         setFiltroModal('');
     };

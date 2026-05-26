@@ -4,7 +4,7 @@ const Publicar = () => {
     const [producto, setProducto] = useState({
         nombre: '',
         precio: '',
-        categoria: 'Tecnología',
+        categoria: 'Laptops',
         descripcion: '',
         cpu: '',
         gpu: '',
@@ -16,6 +16,8 @@ const Publicar = () => {
     const [preview, setPreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [vendedorNombre, setVendedorNombre] = useState('');
+    const [validacionImagen, setValidacionImagen] = useState('');
+    const [validandoSeguridad, setValidandoSeguridad] = useState(false);
 
     useEffect(() => {
         const usuario = localStorage.getItem("usuario");
@@ -28,11 +30,67 @@ const Publicar = () => {
         setProducto({ ...producto, [e.target.name]: e.target.value });
     };
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
             setImageFile(file);
             setPreview(URL.createObjectURL(file));
+            setValidacionImagen("Validando imagen...");
+
+            const formData = new FormData();
+            formData.append('imagen', file);
+
+            try {
+                const response = await fetch('http://localhost:8080/api/ia/validar-imagen', {
+                    method: 'POST',
+                    body: formData
+                });
+                const resultado = await response.text();
+                setValidacionImagen(resultado);
+            } catch (error) {
+                console.error("Error:", error);
+                setValidacionImagen("⚠️ No se pudo validar la imagen");
+            }
+        }
+    };
+
+    // Función de validación de seguridad con IA
+    const validarSeguridadProducto = async () => {
+        setValidandoSeguridad(true);
+        try {
+            const response = await fetch('http://localhost:8080/api/ia/validar-producto-seguridad', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: producto.nombre,
+                    descripcion: producto.descripcion,
+                    categoria: producto.categoria,
+                    cpu: producto.cpu,
+                    gpu: producto.gpu,
+                    ram: producto.ram,
+                    ssd: producto.ssd,
+                    precio: producto.precio,
+                    vendedorNombre: vendedorNombre,
+                    imagenPath: preview || ''
+                })
+            });
+            const resultado = await response.text();
+
+            if (resultado.includes("🔴 PELIGRO")) {
+                alert(`🚨 SWAPO IA detectó un posible problema:\n${resultado}\n\n¿Aún quieres publicar?`);
+                return confirm("Publicar de todas formas?");
+            } else if (resultado.includes("🟡 SOSPECHOSO")) {
+                alert(`⚠️ SWAPO IA tiene dudas:\n${resultado}\n\n¿Aún quieres publicar?`);
+                return confirm("Publicar de todas formas?");
+            } else {
+                alert(`✅ SWAPO IA validó tu producto:\n${resultado}`);
+                return true;
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            return true;
+        } finally {
+            setValidandoSeguridad(false);
         }
     };
 
@@ -44,15 +102,22 @@ const Publicar = () => {
             return;
         }
 
-        const formData = new FormData();
-
-        if (imageFile) {
-            formData.append('imagen', imageFile);
-        } else {
+        if (!imageFile) {
             alert("Por favor, selecciona una imagen del producto.");
             return;
         }
 
+        if (validacionImagen && validacionImagen.includes("❌")) {
+            alert("La imagen no es válida: " + validacionImagen);
+            return;
+        }
+
+        // Validar seguridad con IA
+        const seguridadExitosa = await validarSeguridadProducto();
+        if (!seguridadExitosa) return;
+
+        const formData = new FormData();
+        formData.append('imagen', imageFile);
         formData.append('nombre', producto.nombre);
         formData.append('precio', producto.precio);
         formData.append('descripcion', producto.descripcion);
@@ -71,21 +136,17 @@ const Publicar = () => {
                 body: formData,
             });
 
-            if (response.ok)
-            {
-                const mensaje = await response.text();
-                alert(mensaje);
-
-                const productosResponse = await fetch('http://localhost:8080/api/productos');
-                const productos = await productosResponse.json();
-                const productoRecienCreado = productos[productos.length - 1];
-                window.location.href = `/producto/${productoRecienCreado.id}`;
+            if (response.ok) {
+                const productoId = await response.text();
+                alert("¡Producto publicado con éxito!");
+                window.location.href = `/producto/${productoId}`;
+            } else {
+                const error = await response.text();
+                alert("Error: " + error);
             }
-        }
-        catch (error)
-        {
-            console.error("Error de conexión:", error);
-            alert("No se pudo conectar con el backend de Spring Boot.");
+        } catch (error) {
+            console.error("Error:", error);
+            alert("No se pudo conectar con el backend.");
         }
     };
 
@@ -102,7 +163,6 @@ const Publicar = () => {
 
             <form className="sw-publicar-form" onSubmit={handlePublish}>
                 <div className="sw-form-grid">
-
                     <div className="sw-form-section">
                         <h3>Información General</h3>
 
@@ -121,7 +181,7 @@ const Publicar = () => {
 
                         <div className="sw-input-row">
                             <div className="sw-input-group">
-                                <label>Precio / Valor estimado (COP)</label>
+                                <label>Precio (COP)</label>
                                 <input name="precio" type="number" onChange={handleChange} required />
                             </div>
                             <div className="sw-input-group">
@@ -186,12 +246,19 @@ const Publicar = () => {
                                     )}
                                 </div>
                             </label>
+                            {validacionImagen && (
+                                <div className={`validacion-imagen ${validacionImagen.includes("❌") ? "error" : validacionImagen.includes("✅") ? "exito" : "info"}`}>
+                                    {validacionImagen}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <div className="sw-form-actions">
-                    <button type="submit" className="sw-btn-publish">PUBLICAR EN SWAPO</button>
+                    <button type="submit" className="sw-btn-publish" disabled={validandoSeguridad}>
+                        {validandoSeguridad ? "VALIDANDO CON IA..." : "PUBLICAR EN SWAPO"}
+                    </button>
                 </div>
             </form>
         </div>

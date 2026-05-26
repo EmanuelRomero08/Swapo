@@ -1949,3 +1949,32 @@ body {
   flex: 1;
   min-width: 200px;
 }
+
+/* =========================================
+   VALIDACIÓN DE IMAGEN
+   ========================================= */
+.validacion-imagen {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.validacion-imagen.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.validacion-imagen.exito {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.validacion-imagen.info {
+  background: rgba(0, 212, 255, 0.1);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
