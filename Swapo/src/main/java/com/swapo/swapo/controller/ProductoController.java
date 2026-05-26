@@ -30,15 +30,30 @@ public class ProductoController
     private final String UPLOAD_DIR = "uploads/";
 
     @GetMapping
-    public List<Producto> listarTodos()
-    {
-        return productoRepo.findAll();
+    public List<Producto> listarTodos() {
+        return productoRepo.findByEstadoIsNullOrEstadoNot("VENDIDO");
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Producto> obtenerPorId(@PathVariable Long id)
     {
         return productoRepo.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/productos/disponibles")
+    public ResponseEntity<List<Producto>> getProductosDisponibles() {
+        List<Producto> productos = productoRepo.findByEstadoIsNullOrEstadoNot("VENDIDO");
+        return ResponseEntity.ok(productos);
+    }
+
+    @GetMapping("/productos/vendidos/{vendedorNombre}")
+    public ResponseEntity<List<Producto>> getProductosVendidos(@PathVariable String vendedorNombre) {
+        return ResponseEntity.ok(productoRepo.findVendidosByVendedorNombre(vendedorNombre));
+    }
+
+    @GetMapping("/productos/comprados/{compradorId}")
+    public ResponseEntity<List<Producto>> getProductosComprados(@PathVariable Long compradorId) {
+        return ResponseEntity.ok(productoRepo.findCompradosByCompradorId(compradorId));
     }
 
     @DeleteMapping("/{id}")
@@ -52,6 +67,10 @@ public class ProductoController
     {
         try
         {
+            if (precio < 0) {
+                return ResponseEntity.badRequest().body("❌ El precio no puede ser negativo");
+            }
+
             String validacionImagen = imageValidatorService.validarImagen(imagen);
             if (validacionImagen.contains("❌"))
             {
@@ -82,6 +101,7 @@ public class ProductoController
             producto.setSsd(ssd);
             producto.setImagenPath("/uploads/" + nombreArchivo);
             producto.setTipo(tipo);
+            producto.setEstado("DISPONIBLE"); // Estado inicial
 
             productoRepo.save(producto);
             return ResponseEntity.ok(producto.getId().toString());
@@ -97,6 +117,10 @@ public class ProductoController
     {
         try
         {
+            if (precio < 0) {
+                return ResponseEntity.badRequest().body("❌ El precio no puede ser negativo");
+            }
+
             Optional<Producto> productoOpt = productoRepo.findById(id);
             if (!productoOpt.isPresent())
             {
@@ -104,6 +128,11 @@ public class ProductoController
             }
 
             Producto producto = productoOpt.get();
+            
+            if ("VENDIDO".equals(producto.getEstado())) {
+                return ResponseEntity.badRequest().body("❌ No se puede editar un producto que ya fue vendido");
+            }
+            
             producto.setNombre(nombre);
             producto.setPrecio(precio);
             producto.setDescripcion(descripcion);

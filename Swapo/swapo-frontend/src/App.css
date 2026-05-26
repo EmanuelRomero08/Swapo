@@ -1950,6 +1950,13 @@ body {
   min-width: 200px;
 }
 
+.sw-no-results {
+    text-align: center;
+    width: 100%;
+    padding: 50px;
+    grid-column: 1 / -1;
+}
+
 /* =========================================
    VALIDACIÓN DE IMAGEN
    ========================================= */
@@ -1977,4 +1984,90 @@ body {
   background: rgba(0, 212, 255, 0.1);
   color: #00d4ff;
   border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+/* Página de pago */
+.pago-container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.producto-resumen {
+    margin: 30px 0;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+.producto-resumen .precio {
+    font-size: 28px;
+    font-weight: bold;
+    color: #00a650;
+}
+
+.btn-pagar {
+    background: #009ee3;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 10px;
+}
+
+.btn-pagar:hover {
+    background: #007bb5;
+}
+
+.btn-pagar:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.btn-cancelar {
+    background: #ccc;
+    color: #333;
+    border: none;
+    padding: 12px 30px;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-comprar {
+    background: #00a650;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+/* Badge de VENDIDO */
+.badge-vendido {
+    background-color: #f44336;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+/* Mensaje de producto vendido */
+.mensaje-vendido {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    width: 100%;
+    font-weight: 500;
 }

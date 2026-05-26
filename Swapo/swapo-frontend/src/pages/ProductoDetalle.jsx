@@ -93,7 +93,20 @@ const ProductoDetalle = () => {
                     </div>
                     <div className="detalle-badge">
                         {producto.tipo === 'Intercambio' ? '🔄 Intercambio' : '💰 En Venta'}
+                        {producto.estado === 'VENDIDO' && (
+                            <span className="badge-vendido"> ✅ VENDIDO</span>
+                        )}
                     </div>
+                    
+                    {/* Botón comprar (solo si NO es propietario, es VENTA y NO está VENDIDO) */}
+                    {producto.tipo?.toUpperCase() === 'VENTA' && !esPropietario && producto.estado !== 'VENDIDO' && (
+                        <button 
+                            className="btn-comprar" 
+                            onClick={() => navigate('/pago', { state: { producto } })}
+                        >
+                            💳 Comprar ahora
+                        </button>
+                    )}
                 </div>
 
                 {/* Columna derecha - Información */}
@@ -157,7 +170,7 @@ const ProductoDetalle = () => {
                     </div>
 
                     <div className="detalle-acciones">
-                        {esPropietario ? (
+                        {esPropietario && producto.estado !== 'VENDIDO' ? (
                             <>
                                 <button className="btn-editar" onClick={() => navigate(`/editar/${id}`)}>
                                     Editar producto
@@ -166,7 +179,11 @@ const ProductoDetalle = () => {
                                     Eliminar
                                 </button>
                             </>
-                        ) : (
+                        ) : esPropietario && producto.estado === 'VENDIDO' ? (
+                            <div className="mensaje-vendido">
+                                ✅ Este producto ya fue vendido. No se puede modificar ni eliminar.
+                            </div>
+                        ) : !esPropietario && producto.estado !== 'VENDIDO' ? (
                             <>
                                 <button className="btn-contactar" onClick={handleContactar}>
                                     Contactar vendedor
@@ -177,7 +194,11 @@ const ProductoDetalle = () => {
                                     </button>
                                 )}
                             </>
-                        )}
+                        ) : !esPropietario && producto.estado === 'VENDIDO' ? (
+                            <div className="mensaje-vendido">
+                                ❌ Este producto ya fue vendido. No está disponible.
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             </div>

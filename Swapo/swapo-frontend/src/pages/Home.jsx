@@ -13,7 +13,6 @@ const Home = () => {
 
     const categoriasDisponibles = ['Todas', 'Laptops', 'PC Escritorio', 'Componentes', 'Periféricos', 'Audio', 'Monitores', 'Almacenamiento'];
 
-    // Obtener parámetro de búsqueda de la URL
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const searchQuery = params.get('search');
@@ -29,7 +28,9 @@ const Home = () => {
             try {
                 const response = await fetch('http://localhost:8080/api/productos');
                 const data = await response.json();
-                setProductos(data);
+                // 🔥 CAMBIO 1: Filtrar productos VENDIDOS al cargar
+                const disponibles = data.filter(p => p.estado !== 'VENDIDO');
+                setProductos(disponibles);
             } catch (error) {
                 console.error("Error al cargar productos:", error);
             } finally {
@@ -39,12 +40,12 @@ const Home = () => {
         cargarProductos();
     }, []);
 
-    const productosFiltrados = productos.filter(p => {
-        // Filtro por tipo (Venta/Intercambio/Todos)
+    const productosDisponibles = productos.filter(p => p.estado !== 'VENDIDO');
+
+    const productosFiltrados = productosDisponibles.filter(p => {
         if (filtro !== 'Todos' && p.tipo?.toLowerCase() !== filtro.toLowerCase()) {
             return false;
         }
-        // Filtro por categoría
         if (categoria !== 'Todas' && p.categoria !== categoria) {
             return false;
         }
