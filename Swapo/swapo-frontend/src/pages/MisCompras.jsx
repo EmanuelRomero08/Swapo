@@ -33,9 +33,7 @@ function MisCompras() {
     };
 
     const confirmarRecepcion = async (ventaId) => {
-        if (!window.confirm("¿Confirmas que has recibido el producto en buenas condiciones?")) {
-            return;
-        }
+        if (!window.confirm("¿Confirmas que has recibido el producto en buenas condiciones?")) return;
         setProcesando(true);
         try {
             const response = await fetch(`http://localhost:8080/api/payments/confirmar-recepcion/${ventaId}`, {
@@ -47,9 +45,7 @@ function MisCompras() {
             });
             const result = await response.text();
             alert(result);
-            if (response.ok) {
-                cargarCompras();
-            }
+            if (response.ok) cargarCompras();
         } catch (error) {
             console.error('Error:', error);
             alert("Error al confirmar la recepción.");
@@ -59,9 +55,7 @@ function MisCompras() {
     };
 
     const cancelarCompra = async (ventaId) => {
-        if (!window.confirm("¿Estás seguro de que quieres cancelar esta compra?")) {
-            return;
-        }
+        if (!window.confirm("¿Estás seguro de que quieres cancelar esta compra?")) return;
         setProcesando(true);
         try {
             const response = await fetch(`http://localhost:8080/api/payments/cancelar-venta/${ventaId}`, {
@@ -73,9 +67,7 @@ function MisCompras() {
             });
             const result = await response.text();
             alert(result);
-            if (response.ok) {
-                cargarCompras();
-            }
+            if (response.ok) cargarCompras();
         } catch (error) {
             console.error('Error:', error);
             alert("Error al cancelar la compra.");
@@ -97,19 +89,19 @@ function MisCompras() {
     if (cargando) return <div className="loading">Cargando...</div>;
 
     if (!usuarioId) {
-        return <div className="mis-compras-container"><p>Debes iniciar sesión para ver tus compras.</p><Link to="/">Volver al inicio</Link></div>;
+        return <div className="mis-trueques-container"><p>Debes iniciar sesión para ver tus compras.</p><Link to="/">Volver al inicio</Link></div>;
     }
 
     return (
-        <div className="mis-compras-container">
+        <div className="mis-trueques-container">
             <h1>📦 Mis compras</h1>
             {compras.length === 0 ? (
                 <p>No has comprado ningún producto aún.</p>
             ) : (
-                <div className="compras-grid">
+                <div className="trueques-grid">
                     {compras.map(venta => (
-                        <div key={venta.id} className="compra-card">
-                            <div className="compra-info">
+                        <div key={venta.id} className="trueque-card">
+                            <div className="trueque-info">
                                 <p>ID Venta: {venta.id}</p>
                                 <p>Producto ID: {venta.productoId}</p>
                                 <p>Monto: ${venta.monto?.toLocaleString()}</p>
@@ -119,7 +111,7 @@ function MisCompras() {
                                     <p>Código de rastreo: {venta.codigoRastreo}</p>
                                 )}
                             </div>
-                            <div className="compra-acciones">
+                            <div className="trueque-acciones">
                                 {venta.estado === 'ENVIADO' && (
                                     <button onClick={() => confirmarRecepcion(venta.id)} disabled={procesando}>
                                         ✅ Confirmar que recibí el producto

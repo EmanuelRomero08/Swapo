@@ -77,9 +77,7 @@ function MisVentas() {
     };
 
     const cancelarVenta = async (ventaId) => {
-        if (!window.confirm("¿Estás seguro de que quieres cancelar esta venta?")) {
-            return;
-        }
+        if (!window.confirm("¿Estás seguro de que quieres cancelar esta venta?")) return;
         setProcesando(true);
         try {
             const response = await fetch(`http://localhost:8080/api/payments/cancelar-venta/${ventaId}`, {
@@ -91,9 +89,7 @@ function MisVentas() {
             });
             const result = await response.text();
             alert(result);
-            if (response.ok) {
-                cargarVentas();
-            }
+            if (response.ok) cargarVentas();
         } catch (error) {
             console.error('Error:', error);
             alert("Error al cancelar la venta.");
@@ -115,19 +111,19 @@ function MisVentas() {
     if (cargando) return <div className="loading">Cargando...</div>;
 
     if (!usuarioId) {
-        return <div className="mis-ventas-container"><p>Debes iniciar sesión para ver tus ventas.</p><Link to="/">Volver al inicio</Link></div>;
+        return <div className="mis-trueques-container"><p>Debes iniciar sesión para ver tus ventas.</p><Link to="/">Volver al inicio</Link></div>;
     }
 
     return (
-        <div className="mis-ventas-container">
+        <div className="mis-trueques-container">
             <h1>🏷️ Mis ventas</h1>
             {ventas.length === 0 ? (
                 <p>Aún no has vendido ningún producto.</p>
             ) : (
-                <div className="ventas-grid">
+                <div className="trueques-grid">
                     {ventas.map(venta => (
-                        <div key={venta.id} className="venta-card">
-                            <div className="venta-info">
+                        <div key={venta.id} className="trueque-card">
+                            <div className="trueque-info">
                                 <p>ID Venta: {venta.id}</p>
                                 <p>Producto ID: {venta.productoId}</p>
                                 <p>Monto: ${venta.monto?.toLocaleString()}</p>
@@ -137,7 +133,7 @@ function MisVentas() {
                                     <p>Código de rastreo: {venta.codigoRastreo}</p>
                                 )}
                             </div>
-                            <div className="venta-acciones">
+                            <div className="trueque-acciones">
                                 {venta.estado === 'PENDIENTE_ENVIO' && (
                                     <>
                                         <button onClick={() => abrirModalEnvio(venta)} disabled={procesando}>
@@ -147,6 +143,9 @@ function MisVentas() {
                                             ❌ Cancelar venta
                                         </button>
                                     </>
+                                )}
+                                {venta.estado === 'ENVIADO' && (
+                                    <span>⏳ Esperando confirmación del comprador...</span>
                                 )}
                             </div>
                         </div>
@@ -171,9 +170,7 @@ function MisVentas() {
                             <small>Ingresa el número de guía proporcionado por la empresa de envíos</small>
                         </div>
                         <div className="modal-botones">
-                            <button onClick={cerrarModal} disabled={procesando}>
-                                Cancelar
-                            </button>
+                            <button onClick={cerrarModal} disabled={procesando}>Cancelar</button>
                             <button onClick={marcarComoEnviado} disabled={procesando}>
                                 {procesando ? 'Procesando...' : 'Confirmar envío'}
                             </button>

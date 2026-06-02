@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const OfertarTrueque = () => {
-    const { id } = useParams(); // id del producto deseado
+    const { id } = useParams();
     const navigate = useNavigate();
     const [cargando, setCargando] = useState(true);
     const [productoDeseado, setProductoDeseado] = useState(null);
@@ -11,7 +11,6 @@ const OfertarTrueque = () => {
     const [diferenciaDinero, setDiferenciaDinero] = useState(0);
     const [enviando, setEnviando] = useState(false);
 
-    // Cargar producto deseado
     useEffect(() => {
         const cargarProductoDeseado = async () => {
             try {
@@ -27,7 +26,6 @@ const OfertarTrueque = () => {
         cargarProductoDeseado();
     }, [id]);
 
-    // Cargar mis productos
     useEffect(() => {
         const cargarMisProductos = async () => {
             try {
@@ -47,6 +45,12 @@ const OfertarTrueque = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (diferenciaDinero < 0) {
+            alert("❌ La diferencia en dinero no puede ser negativa");
+            return;
+        }
+        
         setEnviando(true);
 
         const productoOfrecido = misProductos.find(p => p.id === parseInt(productoOfrecidoId));
@@ -73,10 +77,12 @@ const OfertarTrueque = () => {
                 alert(`Oferta enviada! ${result.analisisIA}`);
                 navigate('/mis-trueques');
             } else {
-                alert("Error al enviar la oferta");
+                const error = await response.text();
+                alert("Error: " + error);
             }
         } catch (error) {
             console.error("Error:", error);
+            alert("Error de conexión");
         } finally {
             setEnviando(false);
         }
@@ -123,8 +129,10 @@ const OfertarTrueque = () => {
                         value={diferenciaDinero}
                         onChange={(e) => setDiferenciaDinero(Number(e.target.value))}
                         placeholder="0"
+                        min="0"
+                        step="1000"
                     />
-                    <small>Si tu producto vale menos, puedes agregar dinero</small>
+                    <small>Si tu producto vale menos, puedes agregar dinero extra</small>
                 </div>
 
                 <div className="form-actions">

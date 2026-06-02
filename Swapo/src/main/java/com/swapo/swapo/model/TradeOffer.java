@@ -117,4 +117,40 @@ public class TradeOffer
     {
         this.fechaCreacion = fechaCreacion;
     }
+
+    @Column(name = "payment_id")
+    private String paymentId; // ID de la transacción en Mercado Pago
+
+    @Column(name = "escrow_status")
+    private String escrowStatus; // 'PENDIENTE', 'RETENIDO', 'ENVIADO', 'COMPLETADO', 'CANCELADO'
+
+    @Column(name = "sender_confirmed_shipment")
+    private boolean senderConfirmedShipment; 
+
+    @Column(name = "receiver_confirmed_shipment")
+    private boolean receiverConfirmedShipment; 
+
+    @Column(name = "sender_confirmed_receipt")
+    private boolean senderConfirmedReceipt; 
+
+    @Column(name = "receiver_confirmed_receipt")
+    private boolean receiverConfirmedReceipt; 
+
+    public String getPaymentId() { return paymentId; }
+    public void setPaymentId(String paymentId) { this.paymentId = paymentId; }
+
+    public String getEscrowStatus() { return escrowStatus; }
+    public void setEscrowStatus(String escrowStatus) { this.escrowStatus = escrowStatus; }
+
+    public boolean isSenderConfirmedShipment() { return senderConfirmedShipment; }
+    public void setSenderConfirmedShipment(boolean senderConfirmedShipment) { this.senderConfirmedShipment = senderConfirmedShipment; }
+
+    public boolean isReceiverConfirmedShipment() { return receiverConfirmedShipment; }
+    public void setReceiverConfirmedShipment(boolean receiverConfirmedShipment) { this.receiverConfirmedShipment = receiverConfirmedShipment; }
+
+    public boolean isSenderConfirmedReceipt() { return senderConfirmedReceipt; }
+    public void setSenderConfirmedReceipt(boolean senderConfirmedReceipt) { this.senderConfirmedReceipt = senderConfirmedReceipt; }
+
+    public boolean isReceiverConfirmedReceipt() { return receiverConfirmedReceipt; }
+    public void setReceiverConfirmedReceipt(boolean receiverConfirmedReceipt) { this.receiverConfirmedReceipt = receiverConfirmedReceipt; }
 }

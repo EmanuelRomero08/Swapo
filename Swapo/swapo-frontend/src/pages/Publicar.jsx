@@ -16,13 +16,16 @@ const Publicar = () => {
     const [preview, setPreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
     const [vendedorNombre, setVendedorNombre] = useState('');
+    const [vendedorId, setVendedorId] = useState('');
     const [validacionImagen, setValidacionImagen] = useState('');
     const [validandoSeguridad, setValidandoSeguridad] = useState(false);
 
     useEffect(() => {
         const usuario = localStorage.getItem("usuario");
+        const userId = localStorage.getItem("usuarioId");
         if (usuario) {
             setVendedorNombre(usuario);
+            setVendedorId(userId);
         }
     }, []);
 
@@ -54,7 +57,6 @@ const Publicar = () => {
         }
     };
 
-    // Función de validación de seguridad con IA
     const validarSeguridadProducto = async () => {
         setValidandoSeguridad(true);
         try {
@@ -112,7 +114,6 @@ const Publicar = () => {
             return;
         }
 
-        // Validar seguridad con IA
         const seguridadExitosa = await validarSeguridadProducto();
         if (!seguridadExitosa) return;
 
@@ -129,6 +130,7 @@ const Publicar = () => {
         formData.append('tipo', producto.tipo);
         formData.append('vendedorNombre', vendedorNombre);
         formData.append('vendedorEmail', localStorage.getItem("usuarioEmail") || '');
+        formData.append('usuarioId', vendedorId);  // ← AGREGAR ESTO
 
         try {
             const response = await fetch('http://localhost:8080/api/productos/publicar', {

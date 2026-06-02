@@ -31,7 +31,7 @@ public class ProductoController
 
     @GetMapping
     public List<Producto> listarTodos() {
-        return productoRepo.findByEstadoIsNullOrEstadoNot("VENDIDO");
+        return productoRepo.findByEstadoIsNullOrEstadoNotIn(List.of("VENDIDO", "EN_TRUEQUE"));
     }
 
     @GetMapping("/{id}")
@@ -42,7 +42,7 @@ public class ProductoController
 
     @GetMapping("/productos/disponibles")
     public ResponseEntity<List<Producto>> getProductosDisponibles() {
-        List<Producto> productos = productoRepo.findByEstadoIsNullOrEstadoNot("VENDIDO");
+        List<Producto> productos = productoRepo.findByEstadoIsNullOrEstadoNotIn(List.of("VENDIDO", "EN_TRUEQUE"));
         return ResponseEntity.ok(productos);
     }
 
@@ -63,7 +63,20 @@ public class ProductoController
     }
 
     @PostMapping("/publicar")
-    public ResponseEntity<?> guardarConFoto(@RequestParam("imagen") MultipartFile imagen, @RequestParam("nombre") String nombre, @RequestParam("precio") Double precio, @RequestParam("vendedorNombre") String vendedorNombre, @RequestParam(value = "vendedorEmail", required = false) String vendedorEmail, @RequestParam("cpu") String cpu, @RequestParam("gpu") String gpu, @RequestParam("ram") String ram, @RequestParam("ssd") String ssd, @RequestParam("descripcion") String descripcion, @RequestParam("categoria") String categoria, @RequestParam("tipo") String tipo)
+    public ResponseEntity<?> guardarConFoto(
+            @RequestParam("imagen") MultipartFile imagen, 
+            @RequestParam("nombre") String nombre, 
+            @RequestParam("precio") Double precio, 
+            @RequestParam("vendedorNombre") String vendedorNombre, 
+            @RequestParam(value = "vendedorEmail", required = false) String vendedorEmail,
+            @RequestParam("usuarioId") Long usuarioId,
+            @RequestParam("cpu") String cpu, 
+            @RequestParam("gpu") String gpu, 
+            @RequestParam("ram") String ram, 
+            @RequestParam("ssd") String ssd, 
+            @RequestParam("descripcion") String descripcion, 
+            @RequestParam("categoria") String categoria, 
+            @RequestParam("tipo") String tipo)
     {
         try
         {
@@ -101,7 +114,8 @@ public class ProductoController
             producto.setSsd(ssd);
             producto.setImagenPath("/uploads/" + nombreArchivo);
             producto.setTipo(tipo);
-            producto.setEstado("DISPONIBLE"); // Estado inicial
+            producto.setEstado("DISPONIBLE");
+            producto.setUsuarioId(usuarioId);
 
             productoRepo.save(producto);
             return ResponseEntity.ok(producto.getId().toString());

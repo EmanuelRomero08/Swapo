@@ -2356,4 +2356,198 @@ body {
         padding: 10px 12px;
         font-size: 0.75rem;
     }
+
+    /* Mis compras y Mis ventas */
+.mis-compras-container, .mis-ventas-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+.page-title {
+    color: white;
+    font-size: 2rem;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.compras-grid, .ventas-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.compra-card, .venta-card {
+    background: #1e293b;
+    border-radius: 16px;
+    border: 1px solid #334155;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.compra-card:hover, .venta-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    border-color: #00d4ff;
+}
+
+.compra-header, .venta-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+}
+
+.compra-id, .venta-id {
+    font-weight: bold;
+    color: #00d4ff;
+}
+
+.compra-fecha, .venta-fecha {
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.compra-body, .venta-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.compra-info, .venta-info {
+    flex: 2;
+}
+
+.info-row {
+    margin-bottom: 10px;
+}
+
+.info-label {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-right: 10px;
+}
+
+.info-value {
+    color: white;
+    font-weight: 500;
+}
+
+.info-value.precio {
+    color: #00d4ff;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.compra-estado, .venta-estado {
+    flex: 1;
+    text-align: right;
+}
+
+.estado-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.compra-footer, .venta-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #334155;
+    background: #0f172a;
+}
+
+.btn-confirmar, .btn-enviar {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-cancelar {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 10px;
+    transition: all 0.2s;
+}
+
+.btn-confirmar:hover, .btn-enviar:hover, .btn-cancelar:hover {
+    transform: translateY(-2px);
+}
+
+.btn-confirmar:disabled, .btn-enviar:disabled, .btn-cancelar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.mensaje-espera, .mensaje-completado {
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+}
+
+.acciones {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px;
+    background: #1e293b;
+    border-radius: 16px;
+}
+
+.empty-state p {
+    color: #94a3b8;
+    margin-bottom: 20px;
+}
+
+.btn-publicar, .btn-comprar {
+    display: inline-block;
+    background: linear-gradient(135deg, #00d4ff, #4facfe);
+    color: #0f172a;
+    padding: 12px 30px;
+    border-radius: 40px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.btn-publicar:hover, .btn-comprar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+}
+
+  @media (max-width: 768px) {
+    .compra-body, .venta-body {
+        flex-direction: column;
+        text-align: center;
+    }
+    .compra-estado, .venta-estado {
+        text-align: center;
+    }
+    .acciones {
+        justify-content: center;
+    }
+}
 }

@@ -38,9 +38,9 @@ const Login = ({ isOpen, onClose, onLoginSuccess }) => {
 
             const data = await response.json();
 
-            if (response.ok && !data.message?.includes("Error")) {
+            if (response.ok && !data.error) {
                 alert(data.message);
-
+                
                 if (isRegister) {
                     localStorage.setItem("usuario", data.username);
                     localStorage.setItem("usuarioEmail", email);
@@ -52,14 +52,14 @@ const Login = ({ isOpen, onClose, onLoginSuccess }) => {
                     localStorage.setItem("usuarioNombre", data.username);
                     localStorage.setItem("usuarioId", data.userId);
                 }
-
+                
                 if (onLoginSuccess) {
                     onLoginSuccess();
                 }
-
+                
                 onClose();
             } else {
-                alert(data.message || data);
+                alert(data.error || "Error al procesar la solicitud");
             }
         } catch (error) {
             console.error("Error de conexión:", error);

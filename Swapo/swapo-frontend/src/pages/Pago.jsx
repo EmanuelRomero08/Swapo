@@ -26,7 +26,8 @@ function Pago() {
                     productId: producto.id,
                     productTitle: producto.titulo,
                     productPrice: producto.precio,
-                    buyerEmail: localStorage.getItem('email')
+                    buyerEmail: localStorage.getItem('email'),
+                    userId: localStorage.getItem('usuarioId')
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

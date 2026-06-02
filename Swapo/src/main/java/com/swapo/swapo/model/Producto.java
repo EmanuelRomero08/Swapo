@@ -24,6 +24,7 @@ public class Producto extends Recurso {
     private Double scoreIA;
     private String tipo;
     
+    
     @Column(name = "usuario_id")
     private Long usuarioId;
     

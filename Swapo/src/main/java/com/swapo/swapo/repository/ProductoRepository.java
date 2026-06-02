@@ -8,7 +8,8 @@ import java.util.List;
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     
     List<Producto> findByEstadoIsNullOrEstadoNot(String estado);
-    
+    List<Producto> findByEstadoIsNullOrEstadoNotIn(List<String> estados);
+
     @Query("SELECT p FROM Producto p WHERE p.vendedorNombre = ?1 AND p.estado = 'VENDIDO'")
     List<Producto> findVendidosByVendedorNombre(String vendedorNombre);
     

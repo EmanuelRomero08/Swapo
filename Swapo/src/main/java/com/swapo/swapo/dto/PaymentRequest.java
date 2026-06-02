@@ -6,6 +6,7 @@ public class PaymentRequest {
     private Double productPrice;
     private String buyerEmail;
     private String buyerName;
+    private Long userId;
     
     // Getters y Setters
     public Long getProductId() { return productId; }
@@ -22,4 +23,7 @@ public class PaymentRequest {
     
     public String getBuyerName() { return buyerName; }
     public void setBuyerName(String buyerName) { this.buyerName = buyerName; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
 }

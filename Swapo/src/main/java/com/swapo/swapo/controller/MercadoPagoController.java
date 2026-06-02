@@ -14,6 +14,8 @@ import com.swapo.swapo.model.Producto;
 import com.swapo.swapo.model.Venta;
 import com.swapo.swapo.repository.ProductoRepository;
 import com.swapo.swapo.repository.VentaRepository;
+import com.swapo.swapo.repository.TradeOfferRepository;
+import com.swapo.swapo.model.TradeOffer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -31,12 +34,20 @@ public class MercadoPagoController {
 
     @Value("${mercadopago.access.token}")
     private String accessToken;
+
+    @Value("${swapo.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
     
     @Autowired
     private VentaRepository ventaRepository;
     
     @Autowired
     private ProductoRepository productoRepository;
+
+    @Autowired
+    private TradeOfferRepository tradeOfferRepository;
+
+    // ========== ENDPOINTS PARA VENTAS NORMALES ==========
 
     @PostMapping("/create-preference")
     public ResponseEntity<PaymentResponse> createPreference(@RequestBody PaymentRequest request) {
@@ -60,6 +71,7 @@ public class MercadoPagoController {
             PreferenceRequest preferenceRequest = PreferenceRequest.builder()
                 .items(java.util.List.of(itemRequest))
                 .backUrls(backUrls)
+                .externalReference(request.getUserId() != null ? request.getUserId().toString() : "")  // 🔥 Guardar userId del comprador
                 .notificationUrl("https://stalemate-finalist-entrust.ngrok-free.dev/api/payments/webhook")
                 .build();
             
@@ -78,6 +90,71 @@ public class MercadoPagoController {
         }
     }
 
+    // ========== ENDPOINTS PARA TRUEQUES (ESCROW) ==========
+
+    @PostMapping("/create-preference-for-trade")
+    public ResponseEntity<PaymentResponse> createPreferenceForTrade(@RequestBody PaymentRequest request) {
+        try {
+            MercadoPagoConfig.setAccessToken(accessToken);
+
+            PreferenceItemRequest itemRequest = PreferenceItemRequest.builder()
+                .id(request.getProductId().toString())
+                .title(request.getProductTitle())
+                .quantity(1)
+                .unitPrice(BigDecimal.valueOf(request.getProductPrice()))
+                .currencyId("COP")
+                .build();
+
+            PreferenceBackUrlsRequest backUrls = PreferenceBackUrlsRequest.builder()
+                .success(frontendUrl + "/payment-success")
+                .failure(frontendUrl + "/payment-failure")
+                .pending(frontendUrl + "/payment-pending")
+                .build();
+
+            PreferenceRequest preferenceRequest = PreferenceRequest.builder()
+                .items(java.util.List.of(itemRequest))
+                .backUrls(backUrls)
+                .externalReference(request.getUserId() != null ? request.getUserId().toString() : "")  // 🔥 También para trueques
+                .notificationUrl("https://stalemate-finalist-entrust.ngrok-free.dev/api/payments/webhook")
+                .build();
+
+            Preference preference = new PreferenceClient().create(preferenceRequest);
+
+            PaymentResponse response = new PaymentResponse();
+            response.setInitPoint(preference.getInitPoint());
+            response.setPreferenceId(preference.getId());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/capture-payment/{paymentId}")
+    public ResponseEntity<?> capturePayment(@PathVariable String paymentId) {
+        try {
+            MercadoPagoConfig.setAccessToken(accessToken);
+            PaymentClient paymentClient = new PaymentClient();
+            Payment payment = paymentClient.capture(Long.parseLong(paymentId));
+
+            if ("approved".equals(payment.getStatus())) {
+                TradeOffer offer = tradeOfferRepository.findByPaymentId(paymentId).orElse(null);
+                if (offer != null) {
+                    offer.setEscrowStatus("RETENIDO");
+                    tradeOfferRepository.save(offer);
+                }
+                return ResponseEntity.ok(Map.of("message", "Pago capturado exitosamente", "status", payment.getStatus()));
+            } else {
+                return ResponseEntity.status(500).body(Map.of("error", "No se pudo capturar el pago", "status", payment.getStatus()));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al capturar: " + e.getMessage()));
+        }
+    }
+
+    // ========== WEBHOOK CON SOPORTE PARA TRUEQUES ==========
+
     @PostMapping("/webhook")
     public ResponseEntity<Void> webhook(@RequestBody Map<String, Object> payload) {
         try {
@@ -93,21 +170,41 @@ public class MercadoPagoController {
             }
             
             if (paymentId != null) {
+                System.out.println("PaymentId recibido en webhook: " + paymentId);
+                
                 MercadoPagoConfig.setAccessToken(accessToken);
                 PaymentClient paymentClient = new PaymentClient();
                 Payment payment = paymentClient.get(Long.parseLong(paymentId));
                 
                 String status = payment.getStatus();
+                String statusDetail = payment.getStatusDetail();
                 System.out.println("Estado del pago: " + status);
+                System.out.println("Detalle del estado: " + statusDetail);
                 
-                if ("authorized".equals(status) || "waiting_capture".equals(status)) {
-                    registrarVentaPendiente(payment);
-                } 
-                else if ("approved".equals(status)) {
-                    registrarVentaCompleta(payment);
-                }
-                else if ("rejected".equals(status) || "cancelled".equals(status)) {
-                    System.out.println("Pago rechazado o cancelado: " + paymentId);
+                if ("approved".equals(status)) {
+                    // 🔥 PRIMERO: Verificar si es un pago de trueque
+                    Optional<TradeOffer> offerOpt = tradeOfferRepository.findByPaymentId(paymentId);
+                    if (offerOpt.isPresent()) {
+                        // Es un trueque
+                        TradeOffer offer = offerOpt.get();
+                        offer.setEscrowStatus("RETENIDO");
+                        tradeOfferRepository.save(offer);
+                        System.out.println("✅ Trueque actualizado a RETENIDO. Oferta ID: " + offer.getId());
+                    } else {
+                        // No es un trueque, es una venta normal
+                        System.out.println("No es un trueque, registrando como venta normal");
+                        String compradorId = payment.getExternalReference();
+                        System.out.println("Comprador ID desde external_reference: " + compradorId);
+                        registrarVentaCompleta(payment, compradorId);
+                    }
+                } else if ("authorized".equals(status) || "waiting_capture".equals(status)) {
+                    // Pago autorizado pero no capturado (para ventas normales con captura manual)
+                    Optional<TradeOffer> offerOpt = tradeOfferRepository.findByPaymentId(paymentId);
+                    if (offerOpt.isEmpty()) {
+                        registrarVentaPendiente(payment);
+                    }
+                } else if ("rejected".equals(status) || "cancelled".equals(status)) {
+                    System.out.println("Pago RECHAZADO. Detalle: " + statusDetail);
                 }
             }
             
@@ -118,6 +215,8 @@ public class MercadoPagoController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    // ========== MÉTODOS PRIVADOS ==========
 
     private void registrarVentaPendiente(Payment payment) {
         try {
@@ -133,12 +232,17 @@ public class MercadoPagoController {
             Producto producto = productoRepository.findById(Long.parseLong(productId))
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
             
+            String compradorId = payment.getExternalReference();
+            if (compradorId == null || compradorId.isEmpty()) {
+                compradorId = payment.getPayer().getId();
+            }
+            
             Venta venta = new Venta();
             venta.setProductoId(producto.getId());
             venta.setVendedorId(producto.getUsuarioId()); 
-            venta.setCompradorId(Long.parseLong(payment.getPayer().getId()));
+            venta.setCompradorId(Long.parseLong(compradorId));
             venta.setMonto(payment.getTransactionAmount().doubleValue());
-            venta.setEstado("PENDIENTE_ENVIO");  // 🔥 Estado: pago autorizado, esperando envío
+            venta.setEstado("PENDIENTE_ENVIO");
             venta.setPaymentId(payment.getId().toString());
             venta.setFecha(LocalDateTime.now());
             
@@ -153,7 +257,7 @@ public class MercadoPagoController {
         }
     }
 
-    private void registrarVentaCompleta(Payment payment) {
+    private void registrarVentaCompleta(Payment payment, String compradorId) {
         try {
             if (payment.getAdditionalInfo() == null || 
                 payment.getAdditionalInfo().getItems() == null || 
@@ -167,10 +271,18 @@ public class MercadoPagoController {
             Producto producto = productoRepository.findById(Long.parseLong(productId))
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
             
+            // Si no vino el externalReference, usar el payer.getId() como fallback
+            Long compradorIdLong;
+            if (compradorId != null && !compradorId.isEmpty()) {
+                compradorIdLong = Long.parseLong(compradorId);
+            } else {
+                compradorIdLong = Long.parseLong(payment.getPayer().getId());
+            }
+            
             Venta venta = new Venta();
             venta.setProductoId(producto.getId());
             venta.setVendedorId(producto.getUsuarioId()); 
-            venta.setCompradorId(Long.parseLong(payment.getPayer().getId()));
+            venta.setCompradorId(compradorIdLong);
             venta.setMonto(payment.getTransactionAmount().doubleValue());
             venta.setEstado("COMPLETADO");
             venta.setPaymentId(payment.getId().toString());
@@ -181,13 +293,16 @@ public class MercadoPagoController {
             producto.setEstado("VENDIDO");
             productoRepository.save(producto);
             
-            System.out.println("✅ Venta COMPLETADA y producto marcado como VENDIDO: " + producto.getNombre());
+            System.out.println("✅ Venta COMPLETADA para comprador ID: " + compradorIdLong);
+            System.out.println("✅ Producto marcado como VENDIDO: " + producto.getNombre());
             
         } catch (Exception e) {
             System.err.println("Error al registrar venta completa: " + e.getMessage());
             e.printStackTrace();
         }
     }
+
+    // ========== ENDPOINTS PARA GESTIÓN DE VENTAS ==========
 
     @PostMapping("/marcar-enviado/{ventaId}")
     public ResponseEntity<?> marcarComoEnviado(@PathVariable Long ventaId, @RequestBody(required = false) Map<String, String> datos) {

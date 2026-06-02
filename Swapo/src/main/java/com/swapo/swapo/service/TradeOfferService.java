@@ -80,27 +80,32 @@ public class TradeOfferService
         dto.setEstado(oferta.getEstado().toString());
         dto.setAnalisisIA(mensajeIA);
 
-        if (oferta.getEmisor() != null)
-        {
-            dto.setEmisorNombre(oferta.getEmisor().getUsername());
-        }
-        if (oferta.getReceptor() != null)
-        {
-            dto.setReceptorNombre(oferta.getReceptor().getUsername());
-        }
-        if (oferta.getProductoOfrecido() != null)
-        {
-            dto.setProductoOfrecidoNombre(oferta.getProductoOfrecido().getNombre());
-            dto.setProductoOfrecidoPrecio(oferta.getProductoOfrecido().getPrecio());
-        }
-        if (oferta.getProductoDeseado() != null)
-        {
-            dto.setProductoDeseadoNombre(oferta.getProductoDeseado().getNombre());
-            dto.setProductoDeseadoPrecio(oferta.getProductoDeseado().getPrecio());
-        }
+        dto.setDiferenciaDinero(oferta.getDiferenciaDinero());
+        
+        dto.setEscrowStatus(oferta.getEscrowStatus());
 
-        return dto;
+
+    if (oferta.getEmisor() != null)
+    {
+        dto.setEmisorNombre(oferta.getEmisor().getUsername());
     }
+    if (oferta.getReceptor() != null)
+    {
+        dto.setReceptorNombre(oferta.getReceptor().getUsername());
+    }
+    if (oferta.getProductoOfrecido() != null)
+    {
+        dto.setProductoOfrecidoNombre(oferta.getProductoOfrecido().getNombre());
+        dto.setProductoOfrecidoPrecio(oferta.getProductoOfrecido().getPrecio());
+    }
+    if (oferta.getProductoDeseado() != null)
+    {
+        dto.setProductoDeseadoNombre(oferta.getProductoDeseado().getNombre());
+        dto.setProductoDeseadoPrecio(oferta.getProductoDeseado().getPrecio());
+    }
+
+    return dto;
+}
 
     public List<TradeOfferDTO> obtenerTodasDTO()
     {
@@ -120,4 +125,6 @@ public class TradeOfferService
                 .orElseThrow(() -> new RuntimeException("Oferta no encontrada"));
         tradeOfferRepository.delete(oferta);
     }
+
+    
 }

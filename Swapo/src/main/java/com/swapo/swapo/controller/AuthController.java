@@ -3,16 +3,17 @@ package com.swapo.swapo.controller;
 import com.swapo.swapo.model.Usuario;
 import com.swapo.swapo.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.http.ResponseEntity;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController
 {
     @Autowired
@@ -24,20 +25,24 @@ public class AuthController
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Usuario usuario)
     {
+        Map<String, String> response = new HashMap<>();
+        
         if (usuarioRepo.findByEmail(usuario.getEmail()).isPresent())
         {
-            return ResponseEntity.badRequest().body("Error: El email ya está registrado.");
+            response.put("error", "El email ya está registrado.");
+            return ResponseEntity.badRequest().body(response);
         }
         if (usuarioRepo.findByUsername(usuario.getUsername()).isPresent())
         {
-            return ResponseEntity.badRequest().body("Error: El nombre de usuario ya está registrado.");
+            response.put("error", "El nombre de usuario ya está registrado.");
+            return ResponseEntity.badRequest().body(response);
         }
+        
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         Usuario savedUser = usuarioRepo.save(usuario);
         
-        Map<String, Object> response = new HashMap<>();
         response.put("message", "¡Usuario registrado con éxito! Bienvenido a SWAPO, " + usuario.getUsername() + "!");
-        response.put("userId", savedUser.getId());
+        response.put("userId", savedUser.getId().toString());
         response.put("username", savedUser.getUsername());
         
         return ResponseEntity.ok(response);
@@ -47,16 +52,19 @@ public class AuthController
     public ResponseEntity<?> login(@RequestBody Usuario usuario)
     {
         Optional<Usuario> userOpt = usuarioRepo.findByEmailOrUsername(usuario.getEmail(), usuario.getEmail());
+        
+        Map<String, Object> response = new HashMap<>();
 
         if (userOpt.isPresent() && passwordEncoder.matches(usuario.getPassword(), userOpt.get().getPassword()))
         {
-            Map<String, Object> response = new HashMap<>();
             response.put("message", "¡Bienvenido a SWAPO, " + userOpt.get().getUsername() + "!");
             response.put("userId", userOpt.get().getId());
             response.put("username", userOpt.get().getUsername());
             return ResponseEntity.ok(response);
         }
-        return ResponseEntity.badRequest().body("Error: Email o contraseña incorrectos.");
+        
+        response.put("error", "Email o contraseña incorrectos.");
+        return ResponseEntity.badRequest().body(response);
     }
 
     @GetMapping("/usuario/{username}")

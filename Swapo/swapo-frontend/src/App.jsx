@@ -15,6 +15,8 @@ import PaymentFailure from './pages/PaymentFailure';
 import PaymentPending from './pages/PaymentPending';
 import MisCompras from './pages/MisCompras';
 import MisVentas from './pages/MisVentas';
+import PagoTrueque from './pages/PagoTrueque';
+
 
 
 function App()
@@ -39,6 +41,7 @@ function App()
                         <Route path="/payment-pending" element={<PaymentPending />} />
                         <Route path="/mis-compras" element={<MisCompras />} />
                         <Route path="/mis-ventas" element={<MisVentas />} />
+                        <Route path="/trueque/pagar/:offerId" element={<PagoTrueque />} />
                     </Routes>
                 </main>
             </div>
